@@ -30,7 +30,6 @@ public class Product
     public string? Size { get; set; } // e.g., 750ml
 
     [Display(Name = "% Alcohol")]
-    //[Range(typeof(double), "0", "100", ErrorMessage = "El campo {0} debe estar entre {1} y {2}.")]
     [Precision(5, 2)]
     public double? AlcoholPercent { get; set; }
 
@@ -39,6 +38,10 @@ public class Product
 
     public int CategoryId { get; set; }
     public Category? Category { get; set; }
+
+    // Nuevo: Tipo de uva (opcional)
+    public int? GrapeTypeId { get; set; }
+    public GrapeType? GrapeType { get; set; }
 
     public bool IsWine => !string.IsNullOrWhiteSpace(Winery);
 }

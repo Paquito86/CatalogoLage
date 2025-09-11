@@ -38,6 +38,7 @@ public class EditModel : PageModel
             product.AlcoholPercent = Product.AlcoholPercent;
             product.Origin = Product.Origin;
             product.CategoryId = Product.CategoryId;
+            product.GrapeTypeId = Product.GrapeTypeId;
             await _ctx.SaveChangesAsync();
         }
         return RedirectToPage("Index");

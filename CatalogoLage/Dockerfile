@@ -2,6 +2,9 @@
 
 # Esta fase se usa cuando se ejecuta desde VS en modo rápido (valor predeterminado para la configuración de depuración)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+ENV LANG=es_ES.UTF-8
+ENV LANGUAGE=es_ES:es
+ENV LC_ALL=es_ES.UTF-8
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
@@ -10,6 +13,9 @@ EXPOSE 8081
 
 # Esta fase se usa para compilar el proyecto de servicio
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ENV LANG=es_ES.UTF-8
+ENV LANGUAGE=es_ES:es
+ENV LC_ALL=es_ES.UTF-8
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["CatalogoLage/CatalogoLage.csproj", "CatalogoLage/"]

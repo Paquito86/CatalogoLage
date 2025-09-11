@@ -13,16 +13,12 @@ namespace CatalogoLage.Data
 
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Category> Categories => Set<Category>();
+        public DbSet<GrapeType> GrapeTypes => Set<GrapeType>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            builder.Entity<Category>().HasData(
-                new Category { Id = 1, Name = "Vinos" },
-                new Category { Id = 2, Name = "Cervezas" },
-                new Category { Id = 3, Name = "Licores" },
-                new Category { Id = 4, Name = "Refrescos" }
-            );
+            // No seed de datos. La BD debe empezar vacía.
         }
     }
 }

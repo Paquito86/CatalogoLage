@@ -33,16 +33,23 @@
                                 <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Index">Vino</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Destilados">Destilados</a>
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Index">Destilados</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Cafe">Café e Infusiones</a>
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Index">Café e Infusiones</a>
                             </li>
                         }
                         @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-page="/Admin/Products/Index">Administración</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Administración
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Products/Index">Productos</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Categories/Index">Categorías</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/GrapeTypes/Index">Tipos de uva</a></li>
+                                </ul>
                             </li>
                         }
                     </ul>
@@ -59,7 +66,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - Almacenes Lage - <a asp-area="" asp-page="/Privacy">Privacidad</a>
+            &copy; 2025 - Almacenes Lage - <a asp-area="" asp-page="/Privacy">Política de Privacidad</a>
         </div>
     </footer>
 
