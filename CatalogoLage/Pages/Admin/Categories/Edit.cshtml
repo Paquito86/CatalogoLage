@@ -1,0 +1,21 @@
+@page "{id:int}"
+@model CatalogoLage.Pages.Admin.Categories.EditModel
+@{
+    ViewData["Title"] = "Editar Categoría";
+}
+<h1>Editar Categoría</h1>
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="mb-3">
+        <label asp-for="Category!.Name" class="form-label"></label>
+        <input asp-for="Category!.Name" class="form-control" />
+        <span asp-validation-for="Category!.Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Category!.Description" class="form-label"></label>
+        <textarea asp-for="Category!.Description" class="form-control"></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a asp-page="Index" class="btn btn-secondary">Volver</a>
+</form>
+@section Scripts{<partial name="_ValidationScriptsPartial" />}

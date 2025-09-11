@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "mssql3": {
+      "secretStore": "LocalSecretsFile",
+      "type": "mssql.onprem",
+      "connectionId": "ConnectionStrings:DatabaseConnectionDE28"
+    }
+  }
+}

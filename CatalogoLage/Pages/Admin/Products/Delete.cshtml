@@ -1,0 +1,15 @@
+@page "{id:int}"
+@model CatalogoLage.Pages.Admin.Products.DeleteModel
+@{
+    ViewData["Title"] = "Eliminar Producto";
+}
+<h1>Eliminar Producto</h1>
+@if(Model.Product != null){
+<div class="alert alert-warning">
+    ¿Seguro que desea eliminar <strong>@Model.Product.Name</strong>?
+</div>
+<form method="post">
+    <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+    <a asp-page="Index" class="btn btn-secondary">Cancelar</a>
+</form>
+}

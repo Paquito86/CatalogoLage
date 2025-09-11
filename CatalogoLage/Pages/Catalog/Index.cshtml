@@ -1,0 +1,79 @@
+@page
+@model CatalogoLage.Pages.Catalog.IndexModel
+@{
+    ViewData["Title"] = "Catálogo";
+}
+<h1>Catálogo de Productos</h1>
+<form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-6">
+            <label for="q" class="form-label">Buscar</label>
+            <input id="q" name="q" value="@Model.Query" class="form-control" placeholder="Nombre, descripción, fabricante o bodega" />
+        </div>
+        <div class="col-md-3">
+            <label for="categoryId" class="form-label">Categoría</label>
+            <select id="categoryId" name="categoryId" class="form-select">
+                <option value="">-- Todas --</option>
+                @foreach(var c in Model.Categories)
+                {
+                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 d-grid">
+            <button class="btn btn-primary" type="submit">Filtrar</button>
+        </div>
+    </div>
+    <div class="row g-2 mt-2">
+        <div class="col-md-6">
+            <label for="Winery" class="form-label">Bodega</label>
+            <select id="Winery" name="Winery" class="form-select">
+                <option value="">-- Todas --</option>
+                @foreach (var w in Model.Wineries)
+                {
+                    <option value="@w" selected="@(Model.Winery == w)">@w</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="Origin" class="form-label">Denominación de Origen</label>
+            <select id="Origin" name="Origin" class="form-select">
+                <option value="">-- Todas --</option>
+                @foreach (var o in Model.Origins)
+                {
+                    <option value="@o" selected="@(Model.Origin == o)">@o</option>
+                }
+            </select>
+        </div>
+    </div>
+</form>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+@foreach (var p in Model.Products)
+{
+    <div class="col">
+        <div class="card product-card h-100">
+            <div class="product-image-box">
+                @if(!string.IsNullOrEmpty(p.ImageUrl))
+                {
+                    <img src="@p.ImageUrl" alt="@p.Name" />
+                }
+                else
+                {
+                    <span class="text-muted">Sin imagen</span>
+                }
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">@p.Name</h5>
+                <h6 class="card-subtitle mb-2 text-muted">@((p.IsWine ? p.Winery : p.Manufacturer) ?? "")</h6>
+                <p class="card-text">@p.Description</p>
+                <ul class="list-unstyled small">
+                    @if(!string.IsNullOrWhiteSpace(p.Size)) {<li><strong>Tamaño:</strong> @p.Size</li>}
+                    @if(p.AlcoholPercent.HasValue) {<li><strong>% Alcohol:</strong> @p.AlcoholPercent%</li>}
+                    @if(!string.IsNullOrWhiteSpace(p.Origin)) {<li><strong>Origen:</strong> @p.Origin</li>}
+                    <li><strong>Categoría:</strong> @p.Category?.Name</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+</div>

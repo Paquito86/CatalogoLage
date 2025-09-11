@@ -1,0 +1,13 @@
+@page
+@model CatalogoLage.Pages.Admin.Products.CreateModel
+@{
+    ViewData["Title"] = "Nuevo Producto";
+}
+<h1>Nuevo Producto</h1>
+<form method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <partial name="_ProductForm" model="Model.Product" />
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a asp-page="Index" class="btn btn-secondary">Volver</a>
+</form>
+@section Scripts{<partial name="_ValidationScriptsPartial.es" />}

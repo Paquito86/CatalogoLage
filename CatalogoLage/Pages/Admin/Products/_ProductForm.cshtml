@@ -1,0 +1,59 @@
+@model CatalogoLage.Models.Product
+@inject CatalogoLage.Data.ApplicationDbContext Ctx
+@{
+    var categories = Ctx.Categories.OrderBy(c=>c.Name).ToList();
+}
+<div class="mb-3">
+    <label asp-for="Name" class="form-label"></label>
+    <input asp-for="Name" class="form-control" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Manufacturer" class="form-label"></label>
+    <input asp-for="Manufacturer" class="form-control" />
+    <span class="form-text">Para vinos, dejar vacío y completar Bodega</span>
+</div>
+<div class="mb-3">
+    <label asp-for="Winery" class="form-label"></label>
+    <input asp-for="Winery" class="form-control" />
+</div>
+<div class="mb-3">
+    <label asp-for="CategoryId" class="form-label">Categoría</label>
+    <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>
+</div>
+<div class="mb-3">
+    <label class="form-label">Precio (opcional)</label>
+    <input asp-for="Price" class="form-control" type="text" inputmode="decimal" placeholder="Ej. 12,50" />
+    <div class="form-text">Usa coma (,) como separador decimal. Deja vacío si no aplica.</div>
+    <span asp-validation-for="Price" class="text-danger"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Size" class="form-label"></label>
+    <input asp-for="Size" class="form-control" />
+</div>
+<div class="mb-3">
+    <label asp-for="AlcoholPercent" class="form-label">% Alcohol (opcional)</label>
+    <input asp-for="AlcoholPercent"
+           class="form-control"
+           type="text"
+           inputmode="decimal"
+           placeholder="Ej. 13,50"
+           pattern="^\d{1,3}([,\.]\d{1,2})?$"
+           data-val="true"
+           data-val-regex="Formato no válido. Usa coma (,) como separador decimal."
+           data-val-regex-pattern="^\d{1,3}([,\.]\d{1,2})?$" />
+    <div class="form-text">Usa coma (,) como separador decimal. Deja vacío si no aplica.</div>
+    <span asp-validation-for="AlcoholPercent" class="text-danger"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Origin" class="form-label"></label>
+    <input asp-for="Origin" class="form-control" />
+</div>
+<div class="mb-3">
+    <label asp-for="ImageUrl" class="form-label">URL Imagen</label>
+    <input asp-for="ImageUrl" class="form-control" />
+</div>
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" rows="4" class="form-control"></textarea>
+</div>

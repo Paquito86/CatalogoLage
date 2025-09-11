@@ -1,0 +1,31 @@
+@page
+@model CatalogoLage.Pages.Admin.Categories.IndexModel
+@{
+    ViewData["Title"] = "Categorías";
+}
+<h1>Categorías</h1>
+<p><a asp-page="Create" class="btn btn-primary">Nueva Categoría</a> <a asp-page="../Products/Index" class="btn btn-secondary">Volver a Productos</a></p>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th># Productos</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var c in Model.Categories)
+{
+    <tr>
+        <td>@c.Name</td>
+        <td>@c.Description</td>
+        <td>@Model.ProductCounts.GetValueOrDefault(c.Id)</td>
+        <td>
+            <a asp-page="Edit" asp-route-id="@c.Id">Editar</a> |
+            <a asp-page="Delete" asp-route-id="@c.Id">Eliminar</a>
+        </td>
+    </tr>
+}
+    </tbody>
+</table>
