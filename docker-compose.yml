@@ -1,39 +1,36 @@
-version: "3.8"
-
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: catalogo-sqlserver
-    environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=${SA_PASSWORD:-Str0ng_Password!}
-      - MSSQL_PID=Express
-    ports:
-      - "1433:1433"
-    volumes:
-      - mssql-data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P \"$${SA_PASSWORD}\" -Q \"SELECT 1\" || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
   web:
+    # image: ghcr.io/paquito86/catalogolage
     build:
       context: .
-      dockerfile: CatalogoLage/Dockerfile
+      dockerfile: Dockerfile
     container_name: catalogolage-web
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DatabaseConnectionDE28=Server=catalogo-sqlserver;Database=CatalogoLage;User Id=sa;Password=${SA_PASSWORD:-Str0ng_Password!};TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=true
-    depends_on:
-      sqlserver:
-        condition: service_healthy
+      - ConnectionStrings__DatabaseConnectionDE28=Server=server28.alphatechs.net;Database=lage;Persist Security Info=True;User ID=lage012;Password=57U9xkDTB9FyY1uIbH;Trust Server Certificate=True
     ports:
-      - "8080:8080"
+      - "8085:8080"
     restart: unless-stopped
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # HTTP
+      - "traefik.http.routers.catalogolage.entrypoints=web"
+      - "traefik.http.routers.catalogolage.rule=Host(`lage.alphatechs.net`)"
+      - "traefik.http.routers.catalogolage.middlewares=catalogolage_https"
+      - "traefik.http.middlewares.catalogolage_https.redirectscheme.scheme=https"
+      # HTTPS
+      - "traefik.http.routers.catalogolage-https.entrypoints=websecure"
+      - "traefik.http.routers.catalogolage-https.rule=Host(`lage.alphatechs.net`)"
+      - "traefik.http.routers.catalogolage-https.tls=true"
+      - "traefik.http.routers.catalogolage-https.tls.certresolver=production"
+      - "traefik.http.services.catalogolage-https.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik"
 
-volumes:
-  mssql-data:
+networks:
+  traefik:
+    external: true
+
+
