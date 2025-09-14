@@ -43,5 +43,9 @@ public class Product
     public int? GrapeTypeId { get; set; }
     public GrapeType? GrapeType { get; set; }
 
+    // Coordenadas para matriz de drag and drop
+    public int? MatrixX { get; set; }
+    public int? MatrixY { get; set; }
+
     public bool IsWine => !string.IsNullOrWhiteSpace(Winery);
 }
