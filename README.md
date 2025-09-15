@@ -41,7 +41,6 @@
 - Gestión completa de productos (crear, editar, eliminar)
 - Organización visual del catálogo mediante drag-and-drop
 - Administración de categorías y tipos de uva
-- Configuración de la presentación matricial
 
 ---
 
@@ -102,18 +101,6 @@ Cada producto incluye información detallada:
 - **Controles de arrastre** visibles en cada tarjeta de producto
 - **Indicadores de posición** para ubicación precisa en la matriz
 - **Formularios de gestión** integrados para edición rápida
-
----
-
-## 🚀 Guía de Instalación
-
-### 📋 Prerrequisitos Técnicos
-- .NET 8 SDK o superior
-- SQL Server (LocalDB o instancia completa)
-- Visual Studio 2022 o VS Code
-- Docker (opcional para contenedores)
-
----
 
 ## 📖 Manual de Uso
 
