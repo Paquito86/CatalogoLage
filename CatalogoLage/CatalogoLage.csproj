@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-CatalogoLage-2d8ac135-b813-4a4e-8046-cb132e6b645a</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <!-- Configurar UTF-8 para la compilación -->
+    <FileEncoding>UTF-8</FileEncoding>
+    <Utf8Output>true</Utf8Output>
   </PropertyGroup>
 
   <ItemGroup>

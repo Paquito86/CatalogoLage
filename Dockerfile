@@ -2,20 +2,18 @@
 
 # Esta fase se usa cuando se ejecuta desde VS en modo rápido (valor predeterminado para la configuración de depuración)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-ENV LANG=es_ES.UTF-8
-ENV LANGUAGE=es_ES:es
-ENV LC_ALL=es_ES.UTF-8
-USER $APP_UID
+# Configurar UTF-8 como encoding por defecto
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-
 # Esta fase se usa para compilar el proyecto de servicio
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ENV LANG=es_ES.UTF-8
-ENV LANGUAGE=es_ES:es
-ENV LC_ALL=es_ES.UTF-8
+# Configurar UTF-8 también en el contenedor de build
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["CatalogoLage/CatalogoLage.csproj", "CatalogoLage/"]
