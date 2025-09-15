@@ -1,15 +1,15 @@
 @page
 @model CatalogoLage.Pages.Catalog.IndexModel
 @{
-    ViewData["Title"] = "Cat·logo";
+    ViewData["Title"] = "Cat√°logo";
 }
-<h1>Cat·logo de Productos</h1>
+<h1>Cat√°logo de Productos</h1>
 
 @if (User.IsInRole("Admin"))
 {
     <div class="mb-3">
         <form method="get" class="d-inline">
-            @* Preservar par·metros de b˙squeda *@
+            @* Preservar par√°metros de b√∫squeda *@
             @if (!string.IsNullOrEmpty(Model.Query)) { <input type="hidden" name="Query" value="@Model.Query" /> }
             @if (Model.CategoryId.HasValue) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
             @if (!string.IsNullOrEmpty(Model.Winery)) { <input type="hidden" name="Winery" value="@Model.Winery" /> }
@@ -19,18 +19,18 @@
             @if (Model.AdminMode)
             {
                 <input type="hidden" name="AdminMode" value="false" />
-                <button type="submit" class="btn btn-secondary">Salir del modo ediciÛn</button>
+                <button type="submit" class="btn btn-secondary">Salir del modo edici√≥n</button>
             }
             else
             {
                 <input type="hidden" name="AdminMode" value="true" />
-                <button type="submit" class="btn btn-warning">Modo ediciÛn de matriz</button>
+                <button type="submit" class="btn btn-warning">Modo edici√≥n de matriz</button>
             }
         </form>
     </div>
 }
 
-@* Token antifalsificaciÛn para operaciones POST *@
+@* Token antifalsificaci√≥n para operaciones POST *@
 @if (Model.IsAdminMode)
 {
     <form style="display: none;">
@@ -42,10 +42,10 @@
     <div class="row g-2 align-items-end">
         <div class="col-md-6">
             <label for="q" class="form-label">Buscar</label>
-            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripciÛn, fabricante o bodega" />
+            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripci√≥n, fabricante o bodega" />
         </div>
         <div class="col-md-3">
-            <label for="categoryId" class="form-label">CategorÌa</label>
+            <label for="categoryId" class="form-label">Categor√≠a</label>
             <select id="categoryId" name="categoryId" class="form-select">
                 <option value="">-- Todas --</option>
                 @foreach (var c in Model.Categories)
@@ -71,7 +71,7 @@
             </select>
         </div>
         <div class="col-md-4">
-            <label for="Origin" class="form-label">DenominaciÛn de Origen</label>
+            <label for="Origin" class="form-label">Denominaci√≥n de Origen</label>
             <select id="Origin" name="Origin" class="form-select">
                 <option value="">-- Todas --</option>
                 @foreach (var o in Model.Origins)
@@ -102,21 +102,21 @@
 @if (Model.IsAdminMode)
 {
     <div class="alert alert-info">
-        <strong>Modo ediciÛn activo:</strong> Arrastra desde el ·rea negra/verde de cada tarjeta para reorganizar (@Model.MatrixRows filas x @Model.MatrixColumns columnas).
+        <strong>Modo edici√≥n activo:</strong> Arrastra desde el √°rea negra/verde de cada tarjeta para reorganizar (@Model.MatrixRows filas x @Model.MatrixColumns columnas).
     </div>
 
     <div class="card mb-3">
         <div class="card-body">
-            <h5 class="card-title">AÒadir tÌtulo de fila</h5>
+            <h5 class="card-title">A√±adir t√≠tulo de fila</h5>
             <form method="post" asp-page-handler="CreateTitle" class="row g-2">
                 <div class="col-sm-6">
-                    <input class="form-control" name="text" placeholder="Texto del tÌtulo" required />
+                    <input class="form-control" name="text" placeholder="Texto del t√≠tulo" required />
                 </div>
                 <div class="col-sm-3">
                     <input class="form-control" type="number" name="y" min="0" placeholder="Fila (Y)" />
                 </div>
                 <div class="col-sm-3">
-                    <button class="btn btn-success w-100" type="submit">AÒadir tÌtulo</button>
+                    <button class="btn btn-success w-100" type="submit">A√±adir t√≠tulo</button>
                 </div>
             </form>
         </div>
@@ -148,7 +148,7 @@
                                 </form>
                                 <form method="post" asp-page-handler="DeleteTitle">
                                     <input type="hidden" name="id" value="@t.Id" />
-                                    <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('øEliminar este tÌtulo?');">Eliminar</button>
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('¬øEliminar este t√≠tulo?');">Eliminar</button>
                                 </form>
                             </div>
                         }
@@ -170,7 +170,7 @@
                                 <div class="drag-area @(p.MatrixX.HasValue && p.MatrixY.HasValue ? "positioned" : "")" draggable="true" title="Arrastra para mover la tarjeta">
                                     <div class="drag-handle">
                                         <span>:::</span>
-                                        <small>Arrastra aquÌ</small>
+                                        <small>Arrastra aqu√≠</small>
                                     </div>
                                 </div>
                                 <div class="position-indicator">@($"{x},{y}")</div>
@@ -199,11 +199,11 @@
                                             <p class="card-text">@p.Description</p>
                                         }
                                         <ul class="list-unstyled small product-details">
-                                            @if (!string.IsNullOrWhiteSpace(p.Size)) { <li><strong>TamaÒo:</strong> @p.Size</li> }
+                                            @if (!string.IsNullOrWhiteSpace(p.Size)) { <li><strong>Tama√±o:</strong> @p.Size</li> }
                                             @if (p.AlcoholPercent.HasValue) { <li><strong>% Alcohol:</strong> @p.AlcoholPercent%</li> }
                                             @if (!string.IsNullOrWhiteSpace(p.Origin)) { <li><strong>Origen:</strong> @p.Origin</li> }
                                             @if (p.GrapeType != null) { <li><strong>Tipo de uva:</strong> @p.GrapeType.Name</li> }
-                                            <li><strong>CategorÌa:</strong> @p.Category?.Name</li>
+                                            <li><strong>Categor√≠a:</strong> @p.Category?.Name</li>
                                         </ul>
                                     }
                                     @if (p.Price.HasValue)
@@ -228,7 +228,7 @@
 
 @if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
 {
-    <h5>Productos sin posiciÛn asignada (@Model.UnpositionedProducts.Count):</h5>
+    <h5>Productos sin posici√≥n asignada (@Model.UnpositionedProducts.Count):</h5>
     <div class="unpositioned-products mb-4">
         @foreach (var p in Model.UnpositionedProducts)
         {
@@ -236,7 +236,7 @@
                 <div class="drag-area @(p.MatrixX.HasValue && p.MatrixY.HasValue ? "positioned" : "")" draggable="true" title="Arrastra para mover la tarjeta">
                     <div class="drag-handle">
                         <span>:::</span>
-                        <small>Arrastra aquÌ</small>
+                        <small>Arrastra aqu√≠</small>
                     </div>
                 </div>
                 <div class="card-horizontal non-draggable">
@@ -386,10 +386,10 @@
                     formData.append('__RequestVerificationToken', token);
                     const response = await fetch('/Catalog?handler=UpdatePosition', { method: 'POST', body: formData });
                     if (response.ok) { location.reload(); }
-                    else { const result = await response.text(); alert('Error al actualizar la posiciÛn del producto: ' + result); }
+                    else { const result = await response.text(); alert('Error al actualizar la posici√≥n del producto: ' + result); }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error al actualizar la posiciÛn del producto');
+                    alert('Error al actualizar la posici√≥n del producto');
                 }
             }
         });

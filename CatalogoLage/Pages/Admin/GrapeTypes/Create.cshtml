@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model CatalogoLage.Pages.Admin.GrapeTypes.CreateModel
 @{
     ViewData["Title"] = "Nuevo tipo de uva";
@@ -12,7 +12,7 @@
         <span asp-validation-for="Item.Name" class="text-danger"></span>
     </div>
     <div class="mb-3">
-        <label asp-for="Item.Description" class="form-label">Descripci�n</label>
+        <label asp-for="Item.Description" class="form-label">Descripción</label>
         <textarea asp-for="Item.Description" class="form-control"></textarea>
     </div>
     <button class="btn btn-primary" type="submit">Guardar</button>

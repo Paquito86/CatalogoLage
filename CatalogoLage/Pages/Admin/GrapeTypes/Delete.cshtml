@@ -1,4 +1,4 @@
-@page "{id:int}"
+ï»¿@page "{id:int}"
 @model CatalogoLage.Pages.Admin.GrapeTypes.DeleteModel
 @{
     ViewData["Title"] = "Eliminar tipo de uva";
@@ -6,10 +6,10 @@
 <h1>Eliminar tipo de uva</h1>
 @if(Model.Item != null){
 <div class="alert alert-warning">
-    ¿Seguro que desea eliminar <strong>@Model.Item.Name</strong>? Esta acción eliminará también los productos asociados.
+    Â¿Seguro que desea eliminar <strong>@Model.Item.Name</strong>? Esta acciÃ³n eliminarÃ¡ tambiÃ©n los productos asociados.
 </div>
 <form method="post">
-    <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+    <button class="btn btn-danger" type="submit">SÃ­, eliminar</button>
     <a asp-page="Index" class="btn btn-secondary">Cancelar</a>
 </form>
 }
