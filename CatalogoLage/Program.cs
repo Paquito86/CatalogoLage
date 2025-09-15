@@ -2,8 +2,21 @@ using CatalogoLage.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using CatalogoLage.Models;
+using System.Text;
+
+// Configurar encoding UTF-8 globalmente
+Console.OutputEncoding = Encoding.UTF8;
+Console.InputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar encoding para la aplicación
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("es-ES");
+    options.SupportedCultures = new[] { new System.Globalization.CultureInfo("es-ES") };
+    options.SupportedUICultures = new[] { new System.Globalization.CultureInfo("es-ES") };
+});
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnectionDE28")
@@ -32,6 +45,9 @@ builder.Services.AddRazorPages(options =>
 });
 
 var app = builder.Build();
+
+// Configurar localización
+app.UseRequestLocalization();
 
 // Seed roles + usuario admin (solo desarrollo / inicialización)
 using (var scope = app.Services.CreateScope())

@@ -9,6 +9,8 @@
     <!-- Configurar UTF-8 para la compilación -->
     <FileEncoding>UTF-8</FileEncoding>
     <Utf8Output>true</Utf8Output>
+    <!-- Configuración adicional para globalization -->
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
