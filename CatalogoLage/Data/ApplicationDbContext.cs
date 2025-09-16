@@ -19,7 +19,6 @@ namespace CatalogoLage.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            // No seed de datos. La BD debe empezar vacía.
         }
     }
 }
