@@ -26,6 +26,8 @@ public class IndexModel : PageModel
 
     // Títulos de filas (ocupan una fila completa)
     public List<CatalogTitleRow> TitleRows { get; set; } = new();
+    // Celdas vacías reservadas
+    public HashSet<(int x,int y)> EmptyCells { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
@@ -79,39 +81,28 @@ public class IndexModel : PageModel
                 EF.Functions.Like(p.GrapeType!.Name, term)
             );
         }
-        if (CategoryId.HasValue)
-        {
-            q = q.Where(p => p.CategoryId == CategoryId.Value);
-        }
-        if (!string.IsNullOrWhiteSpace(Winery))
-        {
-            q = q.Where(p => p.Winery == Winery);
-        }
-        if (!string.IsNullOrWhiteSpace(Origin))
-        {
-            q = q.Where(p => p.Origin == Origin);
-        }
-        if (GrapeTypeId.HasValue)
-        {
-            q = q.Where(p => p.GrapeTypeId == GrapeTypeId.Value);
-        }
+        if (CategoryId.HasValue) q = q.Where(p => p.CategoryId == CategoryId.Value);
+        if (!string.IsNullOrWhiteSpace(Winery)) q = q.Where(p => p.Winery == Winery);
+        if (!string.IsNullOrWhiteSpace(Origin)) q = q.Where(p => p.Origin == Origin);
+        if (GrapeTypeId.HasValue) q = q.Where(p => p.GrapeTypeId == GrapeTypeId.Value);
         
         Products = await q.OrderBy(p => p.Name).ToListAsync();
 
         // Cargar títulos de filas
         TitleRows = await _ctx.CatalogTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
+        // Cargar celdas vacías
+        EmptyCells = (await _ctx.CatalogEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
 
-        // Configurar modo administrador si está habilitado
+        // Configurar modo administrador
         IsAdminMode = AdminMode && User.IsInRole("Admin");
         
-        // Siempre organizar productos en matriz para mostrar el layout organizado
+        // Organizar
         OrganizeProductsInMatrix();
     }
 
     private void OrganizeProductsInMatrix()
     {
         var reservedRows = TitleRows.Select(t => t.MatrixY).ToHashSet();
-        // Calcular número de filas dinámicamente basado en la cantidad de productos y filas reservadas
         int productCount = Products.Count;
         int reservedCount = reservedRows.Count;
         int maxProductY = Products.Where(p => p.MatrixY.HasValue).Select(p => p.MatrixY!.Value).DefaultIfEmpty(-1).Max();
@@ -129,6 +120,7 @@ public class IndexModel : PageModel
                 product.MatrixX >= 0 && product.MatrixX < MatrixColumns &&
                 product.MatrixY >= 0 && product.MatrixY < MatrixRows &&
                 !reservedRows.Contains(product.MatrixY.Value) &&
+                !EmptyCells.Contains((product.MatrixX.Value, product.MatrixY.Value)) &&
                 ProductMatrix[product.MatrixY.Value, product.MatrixX.Value] == null)
             {
                 ProductMatrix[product.MatrixY.Value, product.MatrixX.Value] = product;
@@ -147,7 +139,7 @@ public class IndexModel : PageModel
                 if (reservedRows.Contains(y)) continue;
                 for (int x = 0; x < MatrixColumns && !placed; x++)
                 {
-                    if (ProductMatrix[y, x] == null)
+                    if (ProductMatrix[y, x] == null && !EmptyCells.Contains((x,y)))
                     {
                         ProductMatrix[y, x] = product;
                         UnpositionedProducts.Remove(product);
@@ -160,35 +152,27 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostUpdatePositionAsync(int productId, int x, int y)
     {
-        if (!User.IsInRole("Admin"))
-        {
-            return Forbid();
-        }
+        if (!User.IsInRole("Admin")) return Forbid();
 
         var product = await _ctx.Products.FindAsync(productId);
-        if (product == null)
-        {
-            return NotFound();
-        }
+        if (product == null) return NotFound();
 
         var reservedRows = await _ctx.CatalogTitleRows.Select(t => t.MatrixY).ToListAsync();
-        if (reservedRows.Contains(y))
+        if (reservedRows.Contains(y)) return BadRequest("No se puede colocar un producto en una fila de título");
+
+        // Si la celda estaba reservada como vacía, la liberamos
+        var emptyCell = await _ctx.CatalogEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
+        if (emptyCell != null)
         {
-            return BadRequest("No se puede colocar un producto en una fila de título");
+            _ctx.CatalogEmptyCells.Remove(emptyCell); // desbloquear
         }
 
         var totalProducts = await _ctx.Products.CountAsync();
         var maxRows = totalProducts > 0 ? (int)Math.Ceiling((double)totalProducts / MatrixColumns) : 1;
         maxRows += reservedRows.Distinct().Count();
+        if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows) return BadRequest("Coordenadas inválidas");
 
-        if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows)
-        {
-            return BadRequest("Coordenadas inválidas");
-        }
-
-        var existingProduct = await _ctx.Products
-            .FirstOrDefaultAsync(p => p.MatrixX == x && p.MatrixY == y && p.Id != productId);
-        
+        var existingProduct = await _ctx.Products.FirstOrDefaultAsync(p => p.MatrixX == x && p.MatrixY == y && p.Id != productId);
         if (existingProduct != null)
         {
             existingProduct.MatrixX = product.MatrixX;
@@ -197,9 +181,7 @@ public class IndexModel : PageModel
 
         product.MatrixX = x;
         product.MatrixY = y;
-
         await _ctx.SaveChangesAsync();
-
         return new JsonResult(new { success = true });
     }
 
@@ -209,12 +191,9 @@ public class IndexModel : PageModel
         text = (text ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("El título es obligatorio");
         if (y < 0) y = 0;
-
         var exists = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
         if (exists) return BadRequest("Ya existe un título en esa fila");
-
         await MoveProductsOutOfRowAsync(y);
-
         _ctx.CatalogTitleRows.Add(new CatalogTitleRow { Text = text, MatrixY = y });
         await _ctx.SaveChangesAsync();
         return RedirectToPage();
@@ -225,18 +204,15 @@ public class IndexModel : PageModel
         if (!User.IsInRole("Admin")) return Forbid();
         var title = await _ctx.CatalogTitleRows.FindAsync(id);
         if (title == null) return NotFound();
-
         text = (text ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("El título es obligatorio");
         if (y < 0) y = 0;
-
         if (y != title.MatrixY)
         {
             var exists = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y && t.Id != id);
             if (exists) return BadRequest("Ya existe un título en la fila destino");
             await MoveProductsOutOfRowAsync(y);
         }
-
         title.Text = text;
         title.MatrixY = y;
         await _ctx.SaveChangesAsync();
@@ -253,6 +229,26 @@ public class IndexModel : PageModel
         return RedirectToPage();
     }
 
+    public async Task<IActionResult> OnPostVaciarCeldaAsync(int x, int y, int productId)
+    {
+        if (!User.IsInRole("Admin")) return Forbid();
+        // Celda pasa a estar reservada como vacía
+        var product = await _ctx.Products.FindAsync(productId);
+        if (product == null) return NotFound();
+        if (product.MatrixX != x || product.MatrixY != y)
+        {
+            return BadRequest("Datos inconsistentes");
+        }
+        product.MatrixX = null;
+        product.MatrixY = null;
+        if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == y))
+        {
+            _ctx.CatalogEmptyCells.Add(new CatalogEmptyCell { X = x, Y = y });
+        }
+        await _ctx.SaveChangesAsync();
+        return new JsonResult(new { success = true });
+    }
+
     private async Task MoveProductsOutOfRowAsync(int targetRow)
     {
         var productsInRow = await _ctx.Products
@@ -264,7 +260,6 @@ public class IndexModel : PageModel
         var allProducts = await _ctx.Products.ToListAsync();
         var reservedRows = (await _ctx.CatalogTitleRows.ToListAsync()).Select(t => t.MatrixY).ToHashSet();
         reservedRows.Add(targetRow);
-
         int maxY = allProducts.Where(p => p.MatrixY.HasValue).Select(p => p.MatrixY!.Value).DefaultIfEmpty(-1).Max();
         int totalCount = allProducts.Count;
         int reservedCount = reservedRows.Count;
@@ -284,13 +279,10 @@ public class IndexModel : PageModel
                 occupied[p.MatrixY.Value, p.MatrixX.Value] = true;
             }
         }
-
         bool IsFree(int y, int x) => y >= 0 && x >= 0 && y < matrixRows && x < MatrixColumns && !occupied[y, x] && !reservedRows.Contains(y);
-
         (int y, int x) FindNearestFreeByScan(int fromY, int fromX)
         {
-            int bestY = -1, bestX = -1;
-            int bestDist = int.MaxValue;
+            int bestY = -1, bestX = -1; int bestDist = int.MaxValue;
             for (int y = 0; y < matrixRows; y++)
             {
                 if (reservedRows.Contains(y)) continue;
@@ -298,35 +290,22 @@ public class IndexModel : PageModel
                 {
                     if (!IsFree(y, x)) continue;
                     int dist = Math.Abs(y - fromY) + Math.Abs(x - fromX);
-                    if (dist < bestDist)
-                    {
-                        bestDist = dist;
-                        bestY = y; bestX = x;
-                        if (bestDist == 0) return (bestY, bestX);
-                    }
+                    if (dist < bestDist) { bestDist = dist; bestY = y; bestX = x; if (bestDist == 0) return (bestY, bestX); }
                 }
             }
             if (bestY == -1)
             {
-                // No hay hueco: añade una nueva fila al final (no reservada)
                 var newOcc = new bool[matrixRows + 1, MatrixColumns];
                 for (int y = 0; y < matrixRows; y++)
                     for (int x = 0; x < MatrixColumns; x++)
                         newOcc[y, x] = occupied[y, x];
-                occupied = newOcc;
-                matrixRows++;
-                return (matrixRows - 1, 0);
+                occupied = newOcc; matrixRows++; return (matrixRows - 1, 0);
             }
             return (bestY, bestX);
         }
-
         foreach (var p in productsInRow)
         {
-            int startX = p.MatrixX ?? 0;
-            var (ny, nx) = FindNearestFreeByScan(targetRow, startX);
-            p.MatrixX = nx;
-            p.MatrixY = ny;
-            occupied[ny, nx] = true;
+            int startX = p.MatrixX ?? 0; var (ny, nx) = FindNearestFreeByScan(targetRow, startX); p.MatrixX = nx; p.MatrixY = ny; occupied[ny, nx] = true;
         }
         await _ctx.SaveChangesAsync();
     }
