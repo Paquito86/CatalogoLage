@@ -95,8 +95,8 @@
 
 @if (Model.IsAdminMode)
 {
-    <div class="alert alert-info">
-        <strong>Modo edición:</strong> Arrastra tarjetas. Click derecho para reservar una celda vacía. Arrastrar un producto a una celda reservada la desbloquea.
+    <div class="alert alert-info mb-3">
+        <strong>Modo edición:</strong> Arrastra tarjetas. Usa el formulario inferior para crear títulos. Cada título ocupa una fila completa.
     </div>
 
     @* Restaurado: Crear nuevo título *@
@@ -220,7 +220,9 @@
                             }
                             <div class="card-horizontal @(Model.IsAdminMode ? "non-draggable" : "")">
                                 <div class="product-image-box">
-                                    @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> } else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> } else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                                    @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                                    else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> }
+                                    else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
                                 </div>
                                 <div class="card-body">
                                     <h5 class="card-title">@p.Name</h5>
@@ -243,14 +245,8 @@
                     }
                     else if (Model.IsAdminMode)
                     {
-                        if (isEmptyReserved)
-                        {
-                            <div class="empty-cell-indicator reserved">@($"{x},{y}")</div>
-                        }
-                        else
-                        {
-                            <div class="empty-cell-indicator">@($"{x},{y}")</div>
-                        }
+                        if (isEmptyReserved) { <div class="empty-cell-indicator reserved">@($"{x},{y}")</div> }
+                        else { <div class="empty-cell-indicator">@($"{x},{y}")</div> }
                     }
                 </div>
             }
@@ -270,7 +266,8 @@
                 </div>
                 <div class="card-horizontal non-draggable">
                     <div class="product-image-box small">
-                        @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> } else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                        else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
                     </div>
                     <div class="card-body">
                         <h6 class="card-title">@p.Name</h6>
