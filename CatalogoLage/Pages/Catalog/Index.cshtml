@@ -95,8 +95,24 @@
 
 @if (Model.IsAdminMode)
 {
-    <div class="alert alert-info">
-        <strong>Modo edición:</strong> Arrastra tarjetas. Click derecho para reservar una celda vacía. Arrastrar un producto a una celda reservada la desbloquea.
+    <div class="alert alert-info mb-3">
+        <strong>Modo edición:</strong> Arrastra tarjetas. Usa el formulario inferior para crear títulos. Cada título ocupa una fila completa.
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="post" asp-page-handler="CreateTitle" class="row g-2 align-items-center">
+                <div class="col-sm-6 col-md-7">
+                    <input name="text" class="form-control" placeholder="Nuevo título" required />
+                </div>
+                <div class="col-sm-3 col-md-2">
+                    <input name="y" type="number" min="0" class="form-control" placeholder="Fila Y" />
+                </div>
+                <div class="col-sm-3 col-md-3 d-grid">
+                    <button type="submit" class="btn btn-success">Añadir título</button>
+                </div>
+            </form>
+        </div>
     </div>
 }
 
@@ -112,8 +128,23 @@
             {
                 var t = titleRows[y];
                 <div class="matrix-title-row" style="grid-column: 1 / span @Model.MatrixColumns;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="m-0">@t.Text</h4>
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 align-items-start align-items-md-center">
+                        <h4 class="m-0 flex-grow-1">@t.Text <small class="text-muted">(Fila @t.MatrixY)</small></h4>
+                        @if (Model.IsAdminMode)
+                        {
+                            <div class="d-flex gap-2 flex-wrap">
+                                <form method="post" asp-page-handler="UpdateTitle" class="d-flex flex-wrap gap-1 align-items-center small">
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input name="text" value="@t.Text" class="form-control form-control-sm" style="min-width:160px" />
+                                    <input name="y" type="number" value="@t.MatrixY" min="0" class="form-control form-control-sm" style="width:90px" />
+                                    <button class="btn btn-sm btn-primary" type="submit" title="Guardar cambios">Guardar</button>
+                                </form>
+                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('¿Eliminar título?');">
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar título">Eliminar</button>
+                                </form>
+                            </div>
+                        }
                     </div>
                 </div>
                 continue;
@@ -129,16 +160,15 @@
                             @if (Model.IsAdminMode)
                             {
                                 <div class="drag-area @(p.MatrixX.HasValue && p.MatrixY.HasValue ? "positioned" : "")" draggable="true">
-                                    <div class="drag-handle">
-                                        <span>:::</span>
-                                        <small>Arrastra</small>
-                                    </div>
+                                    <div class="drag-handle"><span>:::</span><small>Arrastra</small></div>
                                 </div>
                                 <div class="position-indicator">@($"{x},{y}")</div>
                             }
                             <div class="card-horizontal @(Model.IsAdminMode ? "non-draggable" : "")">
                                 <div class="product-image-box">
-                                    @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> } else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> } else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                                    @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                                    else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> }
+                                    else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
                                 </div>
                                 <div class="card-body">
                                     <h5 class="card-title">@p.Name</h5>
@@ -161,14 +191,8 @@
                     }
                     else if (Model.IsAdminMode)
                     {
-                        if (isEmptyReserved)
-                        {
-                            <div class="empty-cell-indicator reserved">@($"{x},{y}")</div>
-                        }
-                        else
-                        {
-                            <div class="empty-cell-indicator">@($"{x},{y}")</div>
-                        }
+                        if (isEmptyReserved) { <div class="empty-cell-indicator reserved">@($"{x},{y}")</div> }
+                        else { <div class="empty-cell-indicator">@($"{x},{y}")</div> }
                     }
                 </div>
             }
@@ -188,7 +212,8 @@
                 </div>
                 <div class="card-horizontal non-draggable">
                     <div class="product-image-box small">
-                        @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> } else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                        else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
                     </div>
                     <div class="card-body">
                         <h6 class="card-title">@p.Name</h6>
