@@ -88,9 +88,8 @@ public class IndexModel : PageModel
         
         Products = await q.OrderBy(p => p.Name).ToListAsync();
 
-        // Cargar títulos de filas
+        // Cargar títulos de filas y celdas vacías
         TitleRows = await _ctx.CatalogTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
-        // Cargar celdas vacías
         EmptyCells = (await _ctx.CatalogEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
 
         // Configurar modo administrador
@@ -165,7 +164,7 @@ public class IndexModel : PageModel
         var emptyCell = await _ctx.CatalogEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
         if (emptyCell != null)
         {
-            _ctx.CatalogEmptyCells.Remove(emptyCell); // desbloquear
+            _ctx.CatalogEmptyCells.Remove(emptyCell);
         }
 
         var totalProducts = await _ctx.Products.CountAsync();
@@ -238,15 +237,15 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnPostVaciarCeldaAsync(int x, int y, int productId)
     {
         if (!User.IsInRole("Admin")) return Forbid();
-        // Celda pasa a estar reservada como vacía
+
         var product = await _ctx.Products.FindAsync(productId);
         if (product == null) return NotFound();
-        if (product.MatrixX != x || product.MatrixY != y)
-        {
-            return BadRequest("Datos inconsistentes");
-        }
+
+        // No exigir que el producto tenga las mismas coordenadas persistidas que la vista.
+        // Simplemente liberamos sus coordenadas y reservamos la celda indicada.
         product.MatrixX = null;
         product.MatrixY = null;
+
         if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == y))
         {
             _ctx.CatalogEmptyCells.Add(new CatalogEmptyCell { X = x, Y = y });
@@ -255,22 +254,18 @@ public class IndexModel : PageModel
         return new JsonResult(new { success = true });
     }
 
-    // Insertar una fila NUEVA después de la fila indicada (y), desplazando hacia abajo desde y+1.
     public async Task<IActionResult> OnPostInsertRowAsync(int y)
     {
         if (!User.IsInRole("Admin")) return Forbid();
         if (y < 0) y = 0;
-        // Máximos actuales
         int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
         int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
         int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
         int maxY = new[] { maxProductY, maxTitleY, maxEmptyY }.Max();
 
-        // Nueva fila se insertará DESPUÉS de y => en newRowY
         int newRowY = y + 1;
-        if (newRowY > maxY + 1) newRowY = maxY + 1; // insertar al final si excede
+        if (newRowY > maxY + 1) newRowY = maxY + 1;
 
-        // Desplazar todo lo que esté en o por debajo de newRowY
         var productsToShift = await _ctx.Products.Where(p => p.MatrixY >= newRowY).ToListAsync();
         foreach (var p in productsToShift)
         {
@@ -287,7 +282,6 @@ public class IndexModel : PageModel
             e.Y += 1;
         }
 
-        // Reservar la nueva fila completa como vacía (se visualizará con "VACÍA")
         for (int x = 0; x < MatrixColumns; x++)
         {
             if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == newRowY))
