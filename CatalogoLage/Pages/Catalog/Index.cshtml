@@ -293,11 +293,11 @@
     <script>
  document.addEventListener('DOMContentLoaded', function(){
   if(!@Model.IsAdminMode.ToString().ToLower()) return;
-  const matrixRows=@Model.MatrixRows; const matrixColumns=@Model.MatrixColumns;
+  const matrixRows=@Model.MatrixRows; const matrixColumns=@Model.MatrixColumns; const allowedRows=@Model.MaxAllowedRows;
   const reservedRows=new Set([@string.Join(",", Model.TitleRows.Select(t=>t.MatrixY))]);
   const emptyReserved=new Set(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.EmptyCells.Select(ec=> ec.x+':'+ec.y))));
   const dragAreas=document.querySelectorAll('.drag-area');
-  const allCells=[...document.querySelectorAll('.matrix-cell.editable')].filter(c=>!reservedRows.has(parseInt(c.dataset.y)));
+  const allCells=[...document.querySelectorAll('.matrix-cell.editable')].filter(c=>!reservedRows.has(parseInt(c.dataset.y)) && parseInt(c.dataset.y) < allowedRows);
   const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null;
   let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
 
@@ -308,9 +308,9 @@
   });
 
   allCells.forEach(cell=>{
-    cell.addEventListener('dragover',function(e){ e.preventDefault(); e.dataTransfer.dropEffect='move'; this.classList.add('drag-over'); handleAutoScroll(e.clientY); });
+    cell.addEventListener('dragover',function(e){ const y=parseInt(this.dataset.y); if(y>=allowedRows){ return; } e.preventDefault(); e.dataTransfer.dropEffect='move'; this.classList.add('drag-over'); handleAutoScroll(e.clientY); });
     cell.addEventListener('dragleave',function(e){ if(!this.contains(e.relatedTarget)) this.classList.remove('drag-over'); });
-    cell.addEventListener('drop',function(e){ e.preventDefault(); this.classList.remove('drag-over'); stopAutoScroll(); const productId=e.dataTransfer.getData('text/plain'); const x=parseInt(this.dataset.x); const y=parseInt(this.dataset.y); if(x>=0&&x<matrixColumns&&y>=0&&y<matrixRows&&!reservedRows.has(y)){ updateProductPosition(productId,x,y); } });
+    cell.addEventListener('drop',function(e){ e.preventDefault(); this.classList.remove('drag-over'); stopAutoScroll(); const productId=e.dataTransfer.getData('text/plain'); const x=parseInt(this.dataset.x); const y=parseInt(this.dataset.y); if(x>=0&&x<matrixColumns&&y>=0&&y<matrixRows&&y<allowedRows&&!reservedRows.has(y)){ updateProductPosition(productId,x,y); } });
   });
 
   function handleAutoScroll(mouseY){ const vh=window.innerHeight; if(vh - mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: scrollSpeed, behavior: 'auto'}); }, 16);} } else if(mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: -scrollSpeed, behavior: 'auto'}); }, 16);} } else { stopAutoScroll(); } }
@@ -324,7 +324,7 @@
   const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
 
   async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
-  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name=\"__RequestVerificationToken\"\]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
+  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
  });
     </script>
 }

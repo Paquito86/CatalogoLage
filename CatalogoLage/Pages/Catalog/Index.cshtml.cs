@@ -29,6 +29,9 @@ public class IndexModel : PageModel
     // Celdas vacías reservadas
     public HashSet<(int x,int y)> EmptyCells { get; set; } = new();
 
+    // Límite superior permitido de filas (cálculo global, sin filtros)
+    public int MaxAllowedRows { get; set; }
+
     [BindProperty(SupportsGet = true)]
     public string? Query { get; set; }
 
@@ -97,6 +100,23 @@ public class IndexModel : PageModel
         
         // Organizar
         OrganizeProductsInMatrix();
+
+        // Calcular el límite superior permitido de filas (global, sin filtros)
+        MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
+    }
+
+    private async Task<int> ComputeMaxAllowedRowsAsync()
+    {
+        var reservedRows = await _ctx.CatalogTitleRows.Select(t => t.MatrixY).ToListAsync();
+        int reservedCount = reservedRows.Distinct().Count();
+        int totalProducts = await _ctx.Products.CountAsync();
+        int rowsNeededForProducts = totalProducts > 0 ? (int)Math.Ceiling((double)totalProducts / MatrixColumns) : 1;
+        int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
+        int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
+        int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
+        int maxRows = Math.Max(rowsNeededForProducts + reservedCount, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
+        if (maxRows <= 0) maxRows = 1;
+        return maxRows;
     }
 
     private void OrganizeProductsInMatrix()
@@ -167,13 +187,8 @@ public class IndexModel : PageModel
             _ctx.CatalogEmptyCells.Remove(emptyCell);
         }
 
-        var totalProducts = await _ctx.Products.CountAsync();
-        var maxRows = totalProducts > 0 ? (int)Math.Ceiling((double)totalProducts / MatrixColumns) : 1;
-        maxRows += reservedRows.Distinct().Count();
-        // Permitir posiciones creadas por celdas vacías o títulos reservados
-        int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
-        int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
-        maxRows = Math.Max(maxRows, Math.Max(maxEmptyY + 1, maxTitleY + 1));
+        // Calcular filas máximas permitidas de forma consistente con la vista (global, sin filtros)
+        int maxRows = await ComputeMaxAllowedRowsAsync();
 
         if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows) return BadRequest("Coordenadas inválidas");
 
