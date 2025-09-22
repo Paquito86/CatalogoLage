@@ -1,6 +1,5 @@
 services:
   web:
-    # image: ghcr.io/paquito86/catalogolage
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,7 +7,7 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DatabaseConnectionDE28=Server=server28.alphatechs.net;Database=lage;Persist Security Info=True;User ID=lage012;Password=57U9xkDTB9FyY1uIbH;Trust Server Certificate=True
+      - ConnectionStrings__DatabaseConnectionDE28=${ConnString}
     ports:
       - "8085:8080"
     restart: unless-stopped
