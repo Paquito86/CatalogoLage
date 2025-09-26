@@ -238,13 +238,10 @@
 @if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
 {
     <h5>Productos sin posición asignada (@Model.UnpositionedProducts.Count):</h5>
-    <div class="unpositioned-products mb-4">
+    <div class="unpositioned-products mb-4" id="unassigned-container">
         @foreach (var p in Model.UnpositionedProducts)
         {
-            <div class="card product-card me-2 mb-2" data-product-id="@p.Id" style="width: 330px; display: inline-block;">
-                <div class="drag-area @(p.MatrixX.HasValue && p.MatrixY.HasValue ? "positioned" : "")" draggable="true">
-                    <div class="drag-handle"><i class="bi bi-hand-index-thumb fs-5"></i><small>Arrastra</small></div>
-                </div>
+            <div class="card product-card me-2 mb-2" data-product-id="@p.Id" data-unassigned="true" style="width: 330px; display: inline-block;">
                 <div class="card-horizontal non-draggable">
                     <div class="product-image-box small">
                         @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
@@ -261,7 +258,12 @@
     </div>
 }
 
-@if (Model.IsAdminMode){<div id="context-menu" class="context-menu d-none"><button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacía</button></div>}
+@if (Model.IsAdminMode){
+  <div id="context-menu" class="context-menu d-none">
+    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacía</button>
+    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas…</button>
+  </div>
+}
 
 @section Styles {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -271,7 +273,7 @@
         .admin-mode .product-image-box{width:130px;min-width:130px;height:278px;padding:8px}
         .product-image-box.small{width:110px;min-width:110px;height:278px;padding:6px}
         .product-image-box img{height:278px;width:auto;max-width:100%;object-fit:contain;margin:0 auto}
-        .no-image-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;color:#6c757d;font-size:.8rem;text-align:center;padding:15px}.card-body{flex:1;padding:1rem;display:flex;flex-direction:column;justify-content:space-between}.admin-mode .card-body{padding:.75rem}.card-title{font-size:1rem;margin-bottom:.5rem;line-height:1.2}.admin-mode .card-title{font-size:.9rem}.card-subtitle{font-size:.875rem;margin-bottom:.5rem}.product-price{margin-top:auto;text-align:right}.context-menu{position:fixed;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:.25rem;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px 0;width:200px}.context-menu .dropdown-item{width:100%;text-align:left;padding:6px 12px;background:none;border:none;font-size:14px}.context-menu .dropdown-item:hover{background:#0d6efd;color:#fff;cursor:pointer}
+        .no-image-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;color:#6c757d;font-size:.8rem;text-align:center;padding:15px}.card-body{flex:1;padding:1rem;display:flex;flex-direction:column;justify-content:space-between}.admin-mode .card-body{padding:.75rem}.card-title{font-size:1rem;margin-bottom:.5rem;line-height:1.2}.admin-mode .card-title{font-size:.9rem}.card-subtitle{font-size:.875rem;margin-bottom:.5rem}.product-price{margin-top:auto;text-align:right}.context-menu{position:fixed;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:.25rem;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px 0;width:220px}.context-menu .dropdown-item{width:100%;text-align:left;padding:6px 12px;background:none;border:none;font-size:14px}.context-menu .dropdown-item:hover{background:#0d6efd;color:#fff;cursor:pointer}
         .delete-row-form{position:absolute;top:4px;right:4px;z-index:30}
         .delete-row-btn{padding:2px 8px;line-height:1}
     </style>
@@ -286,7 +288,7 @@
   const emptyReserved=new Set(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.EmptyCells.Select(ec=> ec.x+':'+ec.y))));
   const dragAreas=document.querySelectorAll('.drag-area');
   const allCells=[...document.querySelectorAll('.matrix-cell.editable')].filter(c=>!reservedRows.has(parseInt(c.dataset.y)) && parseInt(c.dataset.y) < allowedRows);
-  const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null;
+  const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null; let contextIsUnassigned=false;
   let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
 
   dragAreas.forEach(dragArea=>{ const productCard=dragArea.closest('.card'); const productId=productCard.dataset.productId;
@@ -306,10 +308,23 @@
 
   document.addEventListener('selectstart',function(e){ if(e.target.closest('.non-draggable')){ e.preventDefault(); return false; }});
 
-  document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); if(card&&card.dataset.productId){ e.preventDefault(); contextTargetCard=card; const contextMenu=document.getElementById('context-menu'); if(contextMenu){ contextMenu.style.top=e.clientY+'px'; contextMenu.style.left=e.clientX+'px'; contextMenu.classList.remove('d-none'); } }});
-  document.addEventListener('click',function(){ const contextMenu=document.getElementById('context-menu'); if(contextMenu) contextMenu.classList.add('d-none'); });
+  document.addEventListener('contextmenu',function(e){
+    const card=e.target.closest('.product-card');
+    const isUnassigned=card && card.dataset.unassigned === 'true';
+    if(card && (card.dataset.productId || isUnassigned)){
+      e.preventDefault();
+      contextTargetCard=card; contextIsUnassigned=!!isUnassigned;
+      const btnVaciar=document.getElementById('btnVaciarCelda');
+      const btnAsignar=document.getElementById('btnAsignarCoordenadas');
+      if(btnAsignar){ btnAsignar.classList.toggle('d-none', !isUnassigned); }
+      if(btnVaciar){ btnVaciar.classList.toggle('d-none', isUnassigned); }
+      contextMenu.style.top=e.clientY+'px'; contextMenu.style.left=e.clientX+'px'; contextMenu.classList.remove('d-none');
+    }
+  });
+  document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
-  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ const contextMenu=document.getElementById('context-menu'); if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); if(contextMenu) contextMenu.classList.add('d-none'); }); }
+  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
+  const btnAsignar=document.getElementById('btnAsignarCoordenadas'); if(btnAsignar){ btnAsignar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; let xStr=prompt('Columna (X):'); let yStr=prompt('Fila (Y):'); if(xStr===null||yStr===null) return; const x=parseInt(xStr,10); const y=parseInt(yStr,10); if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no válidos'); return; } const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=PlaceUnassigned',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }); }
 
   async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
   async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}

@@ -134,40 +134,25 @@ public class IndexModel : PageModel
         ProductMatrix = new Product[MatrixRows, MatrixColumns];
         UnpositionedProducts = new List<Product>();
 
+        // Solo colocar productos con coordenadas válidas. El resto quedará en UnpositionedProducts.
         foreach (var product in Products)
         {
-            if (product.MatrixX.HasValue && product.MatrixY.HasValue &&
+            bool validCoords = product.MatrixX.HasValue && product.MatrixY.HasValue &&
                 product.MatrixX >= 0 && product.MatrixX < MatrixColumns &&
                 product.MatrixY >= 0 && product.MatrixY < MatrixRows &&
                 !reservedRows.Contains(product.MatrixY.Value) &&
-                !EmptyCells.Contains((product.MatrixX.Value, product.MatrixY.Value)) &&
-                ProductMatrix[product.MatrixY.Value, product.MatrixX.Value] == null)
+                !EmptyCells.Contains((product.MatrixX.Value, product.MatrixY.Value));
+
+            if (validCoords && ProductMatrix[product.MatrixY!.Value, product.MatrixX!.Value] == null)
             {
-                ProductMatrix[product.MatrixY.Value, product.MatrixX.Value] = product;
+                ProductMatrix[product.MatrixY!.Value, product.MatrixX!.Value] = product;
             }
             else
             {
                 UnpositionedProducts.Add(product);
             }
         }
-
-        foreach (var product in UnpositionedProducts.ToList())
-        {
-            bool placed = false;
-            for (int y = 0; y < MatrixRows && !placed; y++)
-            {
-                if (reservedRows.Contains(y)) continue;
-                for (int x = 0; x < MatrixColumns && !placed; x++)
-                {
-                    if (ProductMatrix[y, x] == null && !EmptyCells.Contains((x,y)))
-                    {
-                        ProductMatrix[y, x] = product;
-                        UnpositionedProducts.Remove(product);
-                        placed = true;
-                    }
-                }
-            }
-        }
+        // No auto-ubicar productos sin coordenadas.
     }
 
     public async Task<IActionResult> OnPostUpdatePositionAsync(int productId, int x, int y)
@@ -198,6 +183,36 @@ public class IndexModel : PageModel
             existingProduct.MatrixX = product.MatrixX;
             existingProduct.MatrixY = product.MatrixY;
         }
+
+        product.MatrixX = x;
+        product.MatrixY = y;
+        await _ctx.SaveChangesAsync();
+        return new JsonResult(new { success = true });
+    }
+
+    public async Task<IActionResult> OnPostPlaceUnassignedAsync(int productId, int x, int y)
+    {
+        if (!User.IsInRole("Admin")) return Forbid();
+        if (x < 0 || x >= MatrixColumns) return BadRequest("Columna fuera de rango");
+        var product = await _ctx.Products.FindAsync(productId);
+        if (product == null) return NotFound();
+        // Opcional: exigir que esté sin coordenadas
+        // if (product.MatrixX.HasValue || product.MatrixY.HasValue) return BadRequest("El producto ya tiene coordenadas");
+
+        int maxRows = await ComputeMaxAllowedRowsAsync();
+        if (y < 0 || y >= maxRows) return BadRequest("Fila fuera de rango");
+
+        // Fila de título reservada
+        bool isTitleRow = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
+        if (isTitleRow) return BadRequest("La fila indicada está reservada por un título");
+
+        // Celda reservada como vacía
+        bool isEmptyReserved = await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == y);
+        if (isEmptyReserved) return BadRequest("La celda está reservada como vacía");
+
+        // Celda ocupada por otro producto
+        bool occupied = await _ctx.Products.AnyAsync(p => p.MatrixX == x && p.MatrixY == y);
+        if (occupied) return BadRequest("La celda ya está ocupada");
 
         product.MatrixX = x;
         product.MatrixY = y;
@@ -257,7 +272,6 @@ public class IndexModel : PageModel
         if (product == null) return NotFound();
 
         // No exigir que el producto tenga las mismas coordenadas persistidas que la vista.
-        // Simplemente liberamos sus coordenadas y reservamos la celda indicada.
         product.MatrixX = null;
         product.MatrixY = null;
 
