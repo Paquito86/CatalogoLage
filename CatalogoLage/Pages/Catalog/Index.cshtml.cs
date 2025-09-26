@@ -309,6 +309,49 @@ public class IndexModel : PageModel
         return RedirectToPage(new { AdminMode = true });
     }
 
+    public async Task<IActionResult> OnPostDeleteRowAsync(int y)
+    {
+        if (!User.IsInRole("Admin")) return Forbid();
+        if (y < 0) y = 0;
+
+        // Mover productos fuera de la fila antes de eliminarla
+        await MoveProductsOutOfRowAsync(y);
+
+        // Eliminar título en esa fila (si existe)
+        var titlesAtRow = await _ctx.CatalogTitleRows.Where(t => t.MatrixY == y).ToListAsync();
+        if (titlesAtRow.Count > 0)
+        {
+            _ctx.CatalogTitleRows.RemoveRange(titlesAtRow);
+        }
+
+        // Eliminar celdas vacías de esa fila
+        var emptiesAtRow = await _ctx.CatalogEmptyCells.Where(e => e.Y == y).ToListAsync();
+        if (emptiesAtRow.Count > 0)
+        {
+            _ctx.CatalogEmptyCells.RemoveRange(emptiesAtRow);
+        }
+
+        // Desplazar hacia arriba todo lo que esté por debajo de y
+        var productsBelow = await _ctx.Products.Where(p => p.MatrixY > y).ToListAsync();
+        foreach (var p in productsBelow)
+        {
+            p.MatrixY = (p.MatrixY ?? 0) - 1;
+        }
+        var titlesBelow = await _ctx.CatalogTitleRows.Where(t => t.MatrixY > y).ToListAsync();
+        foreach (var t in titlesBelow)
+        {
+            t.MatrixY -= 1;
+        }
+        var emptiesBelow = await _ctx.CatalogEmptyCells.Where(e => e.Y > y).ToListAsync();
+        foreach (var e in emptiesBelow)
+        {
+            e.Y -= 1;
+        }
+
+        await _ctx.SaveChangesAsync();
+        return RedirectToPage(new { AdminMode = true });
+    }
+
     private async Task MoveProductsOutOfRowAsync(int targetRow)
     {
         var productsInRow = await _ctx.Products
