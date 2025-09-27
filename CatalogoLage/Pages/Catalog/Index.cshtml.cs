@@ -107,29 +107,20 @@ public class IndexModel : PageModel
 
     private async Task<int> ComputeMaxAllowedRowsAsync()
     {
-        var reservedRows = await _ctx.CatalogTitleRows.Select(t => t.MatrixY).ToListAsync();
-        int reservedCount = reservedRows.Distinct().Count();
-        int totalProducts = await _ctx.Products.CountAsync();
-        int rowsNeededForProducts = totalProducts > 0 ? (int)Math.Ceiling((double)totalProducts / MatrixColumns) : 1;
         int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
         int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
         int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
-        int maxRows = Math.Max(rowsNeededForProducts + reservedCount, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
-        if (maxRows <= 0) maxRows = 1;
+        int maxRows = Math.Max(1, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
         return maxRows;
     }
 
     private void OrganizeProductsInMatrix()
     {
         var reservedRows = TitleRows.Select(t => t.MatrixY).ToHashSet();
-        int productCount = Products.Count;
-        int reservedCount = reservedRows.Count;
         int maxProductY = Products.Where(p => p.MatrixY.HasValue).Select(p => p.MatrixY!.Value).DefaultIfEmpty(-1).Max();
         int maxTitleY = reservedRows.DefaultIfEmpty(-1).Max();
         int maxEmptyY = EmptyCells.Select(e => e.y).DefaultIfEmpty(-1).Max();
-        int rowsNeededForProducts = productCount > 0 ? (int)Math.Ceiling((double)productCount / MatrixColumns) : 1;
-        MatrixRows = Math.Max(rowsNeededForProducts + reservedCount, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
-        if (MatrixRows <= 0) MatrixRows = 1;
+        MatrixRows = Math.Max(1, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
         
         ProductMatrix = new Product[MatrixRows, MatrixColumns];
         UnpositionedProducts = new List<Product>();
@@ -311,13 +302,7 @@ public class IndexModel : PageModel
             e.Y += 1;
         }
 
-        for (int x = 0; x < MatrixColumns; x++)
-        {
-            if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == newRowY))
-            {
-                _ctx.CatalogEmptyCells.Add(new CatalogEmptyCell { X = x, Y = newRowY });
-            }
-        }
+        // Importante: NO reservar automáticamente la nueva fila.
 
         await _ctx.SaveChangesAsync();
         return RedirectToPage(new { AdminMode = true });
@@ -366,12 +351,35 @@ public class IndexModel : PageModel
         return RedirectToPage(new { AdminMode = true });
     }
 
+    public async Task<IActionResult> OnPostDeleteLastEmptyRowsAsync(int count)
+    {
+        if (!User.IsInRole("Admin")) return Forbid();
+        if (count <= 0) return RedirectToPage(new { AdminMode = true });
+
+        int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
+        int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
+        int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
+        int y = new[] { maxProductY, maxTitleY, maxEmptyY }.Max();
+
+        int deleted = 0;
+        while (deleted < count && y >= 0)
+        {
+            bool hasProduct = await _ctx.Products.AnyAsync(p => p.MatrixY == y);
+            bool hasTitle = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
+            if (hasProduct || hasTitle) break;
+            var empties = await _ctx.CatalogEmptyCells.Where(e => e.Y == y).ToListAsync();
+            if (empties.Count == 0) { y--; continue; }
+            _ctx.CatalogEmptyCells.RemoveRange(empties);
+            deleted++; y--;
+        }
+
+        if (deleted > 0) await _ctx.SaveChangesAsync();
+        return RedirectToPage(new { AdminMode = true });
+    }
+
     private async Task MoveProductsOutOfRowAsync(int targetRow)
     {
-        var productsInRow = await _ctx.Products
-            .Where(p => p.MatrixY == targetRow)
-            .OrderBy(p => p.MatrixX)
-            .ToListAsync();
+        var productsInRow = await _ctx.Products.Where(p => p.MatrixY == targetRow).OrderBy(p => p.MatrixX).ToListAsync();
         if (productsInRow.Count == 0) return;
 
         var allProducts = await _ctx.Products.ToListAsync();
