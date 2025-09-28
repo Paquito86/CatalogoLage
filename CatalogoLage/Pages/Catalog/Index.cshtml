@@ -305,6 +305,37 @@
     <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacía</button>
     <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas…</button>
   </div>
+
+  @* Modal Bootstrap para asignar coordenadas *@
+  <div class="modal fade" id="assignCoordModal" tabindex="-1" aria-labelledby="assignCoordLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title" id="assignCoordLabel">Asignar coordenadas</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form id="assignCoordForm">
+          <div class="modal-body">
+            <input type="hidden" id="assignProductId" />
+            <div class="mb-2">
+              <label for="assignX" class="form-label small mb-1">Columna (X)</label>
+              <input type="number" class="form-control form-control-sm" id="assignX" min="0" value="0" />
+            </div>
+            <div class="mb-2">
+              <label for="assignY" class="form-label small mb-1">Fila (Y)</label>
+              <input type="number" class="form-control form-control-sm" id="assignY" min="0" value="0" />
+              <div class="form-text">Evita filas de título.</div>
+              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un título.</div>
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" id="btnAssignConfirm" class="btn btn-sm btn-primary">Asignar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 }
 
 @section Styles {
@@ -346,6 +377,48 @@
   const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null; let contextIsUnassigned=false;
   let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
 
+  // Modal asignación coordenadas
+  const assignModalEl=document.getElementById('assignCoordModal');
+  const assignProductId=document.getElementById('assignProductId');
+  const assignX=document.getElementById('assignX');
+  const assignY=document.getElementById('assignY');
+  const assignYReserved=document.getElementById('assignYReserved');
+  const assignForm=document.getElementById('assignCoordForm');
+  const btnAssignConfirm=document.getElementById('btnAssignConfirm');
+  let assignModal=null; try { assignModal = window.bootstrap ? new bootstrap.Modal(assignModalEl) : null; } catch { assignModal = null; }
+  function validateAssignForm(){
+    const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
+    const yIsTitle = !Number.isNaN(y) && reservedRows.has(y);
+    const yOutRange = Number.isNaN(y) || y<0 || y>=allowedRows;
+    const xOutRange = Number.isNaN(x) || x<0 || x>=matrixColumns;
+    assignY.classList.toggle('is-invalid', yIsTitle || yOutRange);
+    assignYReserved.classList.toggle('d-none', !(yIsTitle));
+    btnAssignConfirm.disabled = yIsTitle || yOutRange || xOutRange;
+  }
+  function openAssignModal(productId){
+    assignProductId.value=productId; assignX.value=0; assignY.value=0;
+    assignX.min=0; assignX.max=Math.max(0, matrixColumns-1);
+    assignY.min=0; assignY.max=Math.max(0, allowedRows-1);
+    validateAssignForm();
+    if(assignModal){ assignModal.show(); } else { assignModalEl.classList.add('show'); assignModalEl.style.display='block'; }
+  }
+  function closeAssignModal(){ if(assignModal){ assignModal.hide(); } else { assignModalEl.classList.remove('show'); assignModalEl.style.display='none'; } }
+  assignX?.addEventListener('input', validateAssignForm);
+  assignY?.addEventListener('input', validateAssignForm);
+
+  assignForm?.addEventListener('submit', async function(e){ e.preventDefault(); const productId=assignProductId.value; const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
+    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no válidos'); return; }
+    if(y<0 || y>=allowedRows){ alert('Fila fuera de rango'); return; }
+    if(x<0 || x>=matrixColumns){ alert('Columna fuera de rango'); return; }
+    if(reservedRows.has(y)) { alert('La fila indicada está reservada por un título'); return; }
+    try{
+      const token=document.querySelector('input[name="__RequestVerificationToken"]').value;
+      const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token);
+      const resp=await fetch('/Catalog?handler=PlaceUnassigned',{method:'POST',body:fd});
+      if(resp.ok){ closeAssignModal(); location.reload(); } else { alert('Error: '+await resp.text()); }
+    }catch(err){ console.error(err); alert('Error al asignar coordenadas'); }
+  });
+
   // Colapsar secciones (modo edición)
   const sectionRows=[...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b)=>parseInt(a.dataset.y)-parseInt(b.dataset.y));
   const toggleButtons=[...document.querySelectorAll('.toggle-section')];
@@ -371,14 +444,28 @@
 
   document.addEventListener('selectstart',function(e){ if(e.target.closest('.non-draggable')){ e.preventDefault(); return false; }});
 
-  document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); const isUnassigned=card && card.dataset.unassigned === 'true'; if(card && (card.dataset.productId || isUnassigned)){ e.preventDefault(); contextTargetCard=card; contextIsUnassigned=!!isUnassigned; const btnVaciar=document.getElementById('btnVaciarCelda'); const btnAsignar=document.getElementById('btnAsignarCoordenadas'); if(btnAsignar){ btnAsignar.classList.toggle('d-none', !isUnassigned); } if(btnVaciar){ btnVaciar.classList.toggle('d-none', isUnassigned); } contextMenu.style.top=e.clientY+'px'; contextMenu.style.left=e.clientX+'px'; contextMenu.classList.remove('d-none'); } });
+  document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); const isUnassigned=card && card.dataset.unassigned === 'true'; if(card && (card.dataset.productId || isUnassigned)){
+      e.preventDefault(); contextTargetCard=card; contextIsUnassigned=!!isUnassigned;
+      if(isUnassigned){
+        // Abrir modal de asignación
+        openAssignModal(card.dataset.productId);
+        if(contextMenu) contextMenu.classList.add('d-none');
+        return;
+      }
+      // Para tarjetas posicionadas, mostrar el menú contextual existente (vaciar celda)
+      const btnVaciar=document.getElementById('btnVaciarCelda'); const btnAsignar=document.getElementById('btnAsignarCoordenadas');
+      if(btnAsignar){ btnAsignar.classList.add('d-none'); }
+      if(btnVaciar){ btnVaciar.classList.remove('d-none'); }
+      contextMenu.style.top=e.clientY+'px'; contextMenu.style.left=e.clientX+'px'; contextMenu.classList.remove('d-none');
+    }
+  });
   document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
   const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
-  const btnAsignar=document.getElementById('btnAsignarCoordenadas'); if(btnAsignar){ btnAsignar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; let xStr=prompt('Columna (X):'); let yStr=prompt('Fila (Y):'); if(xStr===null||yStr===null) return; const x=parseInt(xStr,10); const y=parseInt(yStr,10); if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no válidos'); return; } const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=PlaceUnassigned',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }); }
+  // El botón Asignar mediante prompts ya no se usa; sustituido por modal
 
   async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
-  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
+  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name=\"__RequestVerificationToken\"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
  });
     </script>
 }
