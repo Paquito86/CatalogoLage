@@ -14,7 +14,7 @@
 
 ## 📋 Descripción General
 
-**CatalogoLage** es la plataforma digital interna de Almacenes Lage para la gestión y presentación del catálogo de productos de bebidas premium. La aplicación está desarrollada con tecnología ASP.NET Core 8 y proporciona una interfaz moderna e intuitiva para empleados de la empresa.
+**CatalogoLage** es la plataforma digital interna de Almacenes Lage para la gestión y presentación del catálogo de productos de bebidas. La aplicación está desarrollada con tecnología ASP.NET Core 8 y proporciona una interfaz moderna e intuitiva para empleados de la empresa.
 
 ### 🎯 Propósito del Sistema
 
