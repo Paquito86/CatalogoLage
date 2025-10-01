@@ -187,21 +187,22 @@ public class IndexModel : PageModel
         if (x < 0 || x >= MatrixColumns) return BadRequest("Columna fuera de rango");
         var product = await _ctx.Products.FindAsync(productId);
         if (product == null) return NotFound();
-        // Opcional: exigir que esté sin coordenadas
-        // if (product.MatrixX.HasValue || product.MatrixY.HasValue) return BadRequest("El producto ya tiene coordenadas");
 
         int maxRows = await ComputeMaxAllowedRowsAsync();
         if (y < 0 || y >= maxRows) return BadRequest("Fila fuera de rango");
 
-        // Fila de título reservada
+        // Fila de título reservada (prohibido)
         bool isTitleRow = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
         if (isTitleRow) return BadRequest("La fila indicada está reservada por un título");
 
-        // Celda reservada como vacía
-        bool isEmptyReserved = await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == y);
-        if (isEmptyReserved) return BadRequest("La celda está reservada como vacía");
+        // Si la celda estaba reservada como vacía, permitir y liberar la reserva
+        var emptyCell = await _ctx.CatalogEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
+        if (emptyCell != null)
+        {
+            _ctx.CatalogEmptyCells.Remove(emptyCell);
+        }
 
-        // Celda ocupada por otro producto
+        // Celda ocupada por otro producto sigue prohibido
         bool occupied = await _ctx.Products.AnyAsync(p => p.MatrixX == x && p.MatrixY == y);
         if (occupied) return BadRequest("La celda ya está ocupada");
 
