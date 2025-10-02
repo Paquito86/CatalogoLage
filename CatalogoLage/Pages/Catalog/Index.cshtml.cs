@@ -303,7 +303,14 @@ public class IndexModel : PageModel
             e.Y += 1;
         }
 
-        // Importante: NO reservar automáticamente la nueva fila.
+        // Reservar automáticamente la nueva fila completa como vacía para que no desaparezca tras recargar
+        for (int x = 0; x < MatrixColumns; x++)
+        {
+            if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == newRowY))
+            {
+                _ctx.CatalogEmptyCells.Add(new CatalogEmptyCell { X = x, Y = newRowY });
+            }
+        }
 
         await _ctx.SaveChangesAsync();
         return RedirectToPage(new { AdminMode = true });

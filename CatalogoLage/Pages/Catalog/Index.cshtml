@@ -253,7 +253,16 @@
 
 @if (Model.IsAdminMode)
 {
-    <div class="d-flex justify-content-end mb-4">
+    <div class="d-flex justify-content-end mb-4 gap-2">
+        <form method="post" asp-page-handler="InsertRow" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
+            <div class="d-flex flex-column">
+                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posición</label>
+                <input id="insertRowYBottom" name="y" type="number" min="0" class="form-control form-control-sm" value="@Model.MatrixRows" style="width:120px" />
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Añadir fila</button>
+            </div>
+        </form>
         <form method="post" asp-page-handler="DeleteLastEmptyRows" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
             <div class="d-flex flex-column">
                 <label for="rowsToDelete" class="form-label mb-0 small">Borrar últimas filas vacías</label>
