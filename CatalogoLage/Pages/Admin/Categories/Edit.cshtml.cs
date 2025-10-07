@@ -29,6 +29,7 @@ public class EditModel : PageModel
         {
             cat.Name = Category.Name;
             cat.Description = Category.Description;
+            cat.SortOrder = Category.SortOrder; // persistir
             await _ctx.SaveChangesAsync();
         }
         return RedirectToPage("Index");

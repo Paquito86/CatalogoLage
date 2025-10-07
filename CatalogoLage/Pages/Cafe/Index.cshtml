@@ -1,0 +1,410 @@
+@page
+@model CatalogoLage.Pages.Cafe.IndexModel
+@{
+    ViewData["Title"] = "Café e Infusiones";
+}
+<h1>Catálogo de Café e Infusiones</h1>
+
+@if (User.IsInRole("Admin"))
+{
+    <div class="mb-3">
+        <form method="get" class="d-inline">
+            @if (!string.IsNullOrEmpty(Model.Query)) { <input type="hidden" name="Query" value="@Model.Query" /> }
+            @if (Model.CategoryId.HasValue) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
+            @if (!string.IsNullOrEmpty(Model.Winery)) { <input type="hidden" name="Winery" value="@Model.Winery" /> }
+            @if (!string.IsNullOrEmpty(Model.Origin)) { <input type="hidden" name="Origin" value="@Model.Origin" /> }
+            @if (Model.GrapeTypeId.HasValue) { <input type="hidden" name="GrapeTypeId" value="@Model.GrapeTypeId" /> }
+            
+            @if (Model.AdminMode)
+            {
+                <input type="hidden" name="AdminMode" value="false" />
+                <button type="submit" class="btn btn-secondary">Salir del modo edición</button>
+            }
+            else
+            {
+                <input type="hidden" name="AdminMode" value="true" />
+                <button type="submit" class="btn btn-warning">Modo edición de matriz</button>
+            }
+        </form>
+    </div>
+}
+
+@if (Model.IsAdminMode)
+{
+    <form style="display: none;">
+        @Html.AntiForgeryToken()
+    </form>
+}
+
+@if (Model.IsAdminMode)
+{
+    <div class="alert alert-info mb-3">
+        <strong>Modo edición:</strong> Arrastra tarjetas. Usa el formulario inferior para crear títulos. Cada título ocupa una fila completa.
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <form method="post" asp-page-handler="CreateTitle" class="row g-2 align-items-end">
+            <input type="hidden" name="AdminMode" value="true" />
+            <div class="col-sm-6 col-md-5">
+                <label class="form-label mb-0 small" for="newTitleText">Nuevo título</label>
+                <input id="newTitleText" name="text" class="form-control form-control-sm" placeholder="Texto del título" required />
+            </div>
+            <div class="col-sm-3 col-md-2">
+                <label class="form-label mb-0 small" for="newTitleY">Fila</label>
+                <input id="newTitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
+            </div>
+            <div class="col-sm-3 col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear título</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <form method="post" asp-page-handler="InsertRow" class="row g-2 align-items-end" id="formInsertRow">
+            <input type="hidden" name="AdminMode" value="true" />
+            <div class="col-sm-6 col-md-5">
+                <label class="form-label mb-0 small" for="insertRowY">Insertar fila en posición</label>
+                <input type="number" class="form-control form-control-sm" id="insertRowY" name="y" min="0" value="@Model.MatrixRows" />
+            </div>
+            <div class="col-sm-3 col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">Añadir fila</button>
+            </div>
+        </form>
+    </div>
+}
+
+<form method="get" class="mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-6">
+            <label for="q" class="form-label">Buscar</label>
+            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripción, fabricante o bodega" />
+        </div>
+        <div class="col-md-3">
+            <label for="categoryId" class="form-label">Categoría</label>
+            <select id="categoryId" name="categoryId" class="form-select">
+                <option value="">-- Todas --</option>
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 d-grid">
+            <button class="btn btn-primary" type="submit">Filtrar</button>
+        </div>
+    </div>
+</form>
+
+@{
+    var titleRows = Model.TitleRows.ToDictionary(t => t.MatrixY);
+}
+
+<div class="matrix-container mb-4">
+    <div class="matrix-grid @(Model.IsAdminMode ? "admin-mode" : "view-mode")" style="grid-template-columns: repeat(@Model.MatrixColumns, 1fr);">
+        @for (int y = 0; y < Model.MatrixRows; y++)
+        {
+            if (titleRows.ContainsKey(y))
+            {
+                var t = titleRows[y];
+                <div class="matrix-title-row section-row" data-y="@y" style="grid-column: 1 / span @Model.MatrixColumns; position: relative;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            @if (Model.IsAdminMode)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir sección">
+                                    <i class="bi bi-chevron-up"></i>
+                                </button>
+                            }
+                            <h4 class="m-0">@t.Text</h4>
+                        </div>
+                        @if (Model.IsAdminMode)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <form method="post" asp-page-handler="UpdateTitle" class="d-flex align-items-end gap-1">
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="AdminMode" value="true" />
+                                    <input name="text" class="form-control form-control-sm" value="@t.Text" style="max-width:220px" />
+                                    <input name="y" type="number" min="0" class="form-control form-control-sm" value="@t.MatrixY" style="width:90px" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
+                                </form>
+                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('¿Eliminar este título?')">
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="AdminMode" value="true" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                    @if (Model.IsAdminMode)
+                    {
+                        <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
+                            <input type="hidden" name="y" value="@y" />
+                            <input type="hidden" name="AdminMode" value="true" />
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¿Eliminar esta fila? Se desplazarán hacia arriba las filas inferiores.');">?</button>
+                        </form>
+                    }
+                </div>
+                continue;
+            }
+            for (int x = 0; x < Model.MatrixColumns; x++)
+            {
+                bool isEmptyReserved = Model.EmptyCells.Contains((x,y));
+                <div class="matrix-cell @(Model.IsAdminMode ? "editable" : "") @(isEmptyReserved && Model.IsAdminMode ? "reserved-empty" : "")" data-x="@x" data-y="@y" style="position: relative;">
+                    @if (x == Model.MatrixColumns - 1 && Model.IsAdminMode)
+                    {
+                        <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
+                            <input type="hidden" name="y" value="@y" />
+                            <input type="hidden" name="AdminMode" value="true" />
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¿Eliminar esta fila? Se desplazarán hacia arriba las filas inferiores.');">?</button>
+                        </form>
+                    }
+                    @if (Model.ProductMatrix[y, x] != null)
+                    {
+                        var p = Model.ProductMatrix[y, x];
+                        <div class="card product-card h-100 @(Model.IsAdminMode ? "draggable" : "")" @(Model.IsAdminMode ? "draggable=\"false\"" : "") data-product-id="@p!.Id" data-x="@x" data-y="@y">
+                            @if (Model.IsAdminMode)
+                            {
+                                <div class="drag-area @(p.MatrixXCafe.HasValue && p.MatrixYCafe.HasValue ? "positioned" : "")" draggable="true">
+                                    <div class="drag-handle">
+                                        <i class="bi bi-hand-index-thumb fs-5"></i>
+                                        <small>Arrastra</small>
+                                    </div>
+                                </div>
+                                <div class="position-indicator">@($"{x},{y}")</div>
+                            }
+                            <div class="card-horizontal @(Model.IsAdminMode ? "non-draggable" : "")">
+                                <div class="product-image-box">
+                                    @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                                    else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">@p.Name</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">@((p.IsWine ? p.Winery : p.Manufacturer) ?? "")</h6>
+                                    @if (p.Price.HasValue) { <div class="product-price text-primary fw-bold">@p.Price.Value.ToString("C")</div> }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.IsAdminMode)
+                    {
+                        if (isEmptyReserved) { <div class="empty-cell-indicator reserved">@($"{x},{y}")</div> }
+                        else { <div class="empty-cell-indicator">@($"{x},{y}")</div> }
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (Model.IsAdminMode)
+{
+    <div class="d-flex justify-content-end mb-4 gap-2">
+        <form method="post" asp-page-handler="InsertRow" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
+            <div class="d-flex flex-column">
+                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posición</label>
+                <input id="insertRowYBottom" name="y" type="number" min="0" class="form-control form-control-sm" value="@Model.MatrixRows" style="width:120px" />
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Añadir fila</button>
+            </div>
+        </form>
+        <form method="post" asp-page-handler="DeleteLastEmptyRows" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
+            <div class="d-flex flex-column">
+                <label for="rowsToDelete" class="form-label mb-0 small">Borrar últimas filas vacías</label>
+                <input id="rowsToDelete" name="count" type="number" min="1" class="form-control form-control-sm" value="1" style="width:120px" />
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Borrar</button>
+            </div>
+        </form>
+    </div>
+}
+
+@if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
+{
+    <h5>Productos sin posición asignada (@Model.UnpositionedProducts.Count):</h5>
+    <div class="unpositioned-products mb-4" id="unassigned-container" style="display:grid; grid-template-columns: repeat(@Model.MatrixColumns, 1fr); gap: 15px;">
+        @foreach (var p in Model.UnpositionedProducts)
+        {
+            <div class="card product-card" data-product-id="@p.Id" data-unassigned="true">
+                <div class="drag-area" draggable="true">
+                    <div class="drag-handle">
+                        <i class="bi bi-hand-index-thumb fs-5"></i>
+                        <small>Arrastra</small>
+                    </div>
+                </div>
+                <div class="card-horizontal non-draggable">
+                    <div class="product-image-box small">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
+                        else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">@p.Name</h6>
+                        <small class="card-subtitle mb-2 text-muted">@((p.IsWine ? p.Winery : p.Manufacturer) ?? "")</small>
+                        @if (p.Price.HasValue) { <div class="product-price text-primary fw-bold">@p.Price.Value.ToString("C")</div> }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (Model.IsAdminMode){
+  <div id="context-menu" class="context-menu d-none">
+    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacía</button>
+    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas…</button>
+  </div>
+
+  <div class="modal fade" id="assignCoordModal" tabindex="-1" aria-labelledby="assignCoordLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title" id="assignCoordLabel">Asignar coordenadas</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form id="assignCoordForm">
+          <div class="modal-body">
+            <input type="hidden" id="assignProductId" />
+            <div class="mb-2">
+              <label for="assignX" class="form-label small mb-1">Columna (X)</label>
+              <input type="number" class="form-control form-control-sm" id="assignX" min="0" value="0" />
+            </div>
+            <div class="mb-2">
+              <label for="assignY" class="form-label small mb-1">Fila (Y)</label>
+              <input type="number" class="form-control form-control-sm" id="assignY" min="0" value="0" />
+              <div class="form-text">Evita filas de título.</div>
+              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un título.</div>
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" id="btnAssignConfirm" class="btn btn-sm btn-primary">Asignar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        .matrix-container{max-width:1200px;margin:0 auto}.matrix-grid{display:grid;gap:15px;padding:20px;background:#f8f9fa;border-radius:8px}.matrix-grid.view-mode{background:#fff;border:1px solid #dee2e6}.matrix-cell{min-height:250px;border-radius:8px;position:relative;transition:all .3s ease;display:flex;flex-direction:column}.matrix-cell.editable{border:2px dashed #dee2e6}.matrix-cell.editable.drag-over{border-color:#0d6efd;background-color:rgba(13,110,253,.1)}.matrix-cell.reserved-empty{background:repeating-linear-gradient(45deg,#ffe5e5,#ffe5e5 8px,#ffd6d6 8px,#ffd6d6 16px);position:relative}
+        .matrix-cell.reserved-empty{border:1px solid #ced4da}
+        .matrix-cell.reserved-empty::after{content:"VACÍA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
+        .matrix-title-row{background:#fff;border:1px solid #ced4da;padding:8px 12px;border-radius:6px;position:relative}
+        .empty-cell-indicator{position:absolute;top:5px;left:5px;background:rgba(108,117,125,.1);color:#6c757d;padding:2px 5px;border-radius:3px;font-size:10px;font-family:monospace}
+        .empty-cell-indicator.reserved{background:rgba(220,53,69,.15);color:#dc3545;font-weight:600}
+        .position-indicator{position:absolute;top:5px;left:5px;background:rgba(40,167,69,.8);color:#fff;padding:2px 5px;border-radius:3px;font-size:10px;font-family:monospace;z-index:5}
+        .matrix-cell:not(.reserved-empty):has(>.empty-cell-indicator){background:#fff;border:1px solid #ced4da}
+        .drag-area{position:absolute;top:0;right:0;width:60px;height:60px;background:linear-gradient(135deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.6) 100%);border-radius:0 .375rem 0 15px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:20;transition:all .3s ease}.drag-area.positioned{background:linear-gradient(135deg,rgba(40,167,69,.8) 0%,rgba(40,167,69,.6) 100%)}.drag-area.dragging{opacity:.8;transform:rotate(5deg) scale(1.1)}.drag-handle{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:8px}.drag-handle i{font-size:18px;margin-bottom:2px}.drag-handle small{font-size:8px;line-height:1;opacity:.9;font-weight:400}.non-draggable{user-select:none;pointer-events:none}.unpositioned-products{background:#fff3cd;padding:15px;border-radius:8px;border:1px solid #ffeaa7}.card-horizontal{display:flex;height:100%;overflow:hidden}
+        .product-image-box{width:170px;min-width:170px;height:278px;background:#ffffff;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.375rem 0 0 .375rem;padding:10px}
+        .admin-mode .product-image-box{width:130px;min-width:130px;height:278px;padding:8px}
+        .product-image-box.small{width:130px;min-width:130px;height:278px;padding:8px}
+        .product-image-box img{height:278px;width:auto;max-width:100%;object-fit:contain;margin:0 auto}
+        .no-image-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;color:#6c757d;font-size:.8rem;text-align:center;padding:15px}.card-body{flex:1;padding:1rem;display:flex;flex-direction:column;justify-content:space-between}.admin-mode .card-body{padding:.75rem}.card-title{font-size:1rem;margin-bottom:.5rem;line-height:1.2}.admin-mode .card-title{font-size:.9rem}.card-subtitle{font-size:.875rem;margin-bottom:.5rem}.product-price{margin-top:auto;text-align:right}.context-menu{position:fixed;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:.25rem;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px 0;width:220px}.context-menu .dropdown-item{width:100%;text-align:left;padding:6px 12px;background:none;border:none;font-size:14px}.context-menu .dropdown-item:hover{background:#0d6efd;color:#fff;cursor:pointer}
+        .delete-row-form{position:absolute;top:4px;right:4px;z-index:30}
+        .delete-row-btn{padding:2px 8px;line-height:1}
+        .product-card{position:relative}
+    </style>
+}
+
+@section Scripts {
+<script>
+ document.addEventListener('DOMContentLoaded', function(){
+  if(!@Model.IsAdminMode.ToString().ToLower()) return;
+  const matrixRows=@Model.MatrixRows; const matrixColumns=@Model.MatrixColumns; const allowedRows=@Model.MaxAllowedRows;
+  const reservedRows=new Set([@string.Join(",", Model.TitleRows.Select(t=>t.MatrixY))]);
+  const emptyReserved=new Set(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.EmptyCells.Select(ec=> ec.x+':'+ec.y))));
+  const dragAreas=document.querySelectorAll('.drag-area');
+  const dropCells=[...document.querySelectorAll('.matrix-cell.editable')].filter(c=>!reservedRows.has(parseInt(c.dataset.y)) && parseInt(c.dataset.y) < allowedRows);
+  const allMatrixCells=[...document.querySelectorAll('.matrix-cell')];
+  const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null; let contextIsUnassigned=false;
+  let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
+
+  const assignModalEl=document.getElementById('assignCoordModal');
+  const assignProductId=document.getElementById('assignProductId');
+  const assignX=document.getElementById('assignX');
+  const assignY=document.getElementById('assignY');
+  const assignYReserved=document.getElementById('assignYReserved');
+  const assignForm=document.getElementById('assignCoordForm');
+  const btnAssignConfirm=document.getElementById('btnAssignConfirm');
+  let assignModal=null; try { assignModal = window.bootstrap ? new bootstrap.Modal(assignModalEl) : null; } catch { assignModal = null; }
+  function validateAssignForm(){
+    const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
+    const yIsTitle = !Number.isNaN(y) && reservedRows.has(y);
+    const yOutRange = Number.isNaN(y) || y<0 || y>=allowedRows;
+    const xOutRange = Number.isNaN(x) || x<0 || x>=matrixColumns;
+    assignY.classList.toggle('is-invalid', yIsTitle || yOutRange);
+    assignYReserved.classList.toggle('d-none', !(yIsTitle));
+    btnAssignConfirm.disabled = yIsTitle || yOutRange || xOutRange;
+  }
+  function openAssignModal(productId){
+    assignProductId.value=productId; assignX.value=0; assignY.value=0;
+    assignX.min=0; assignX.max=Math.max(0, matrixColumns-1);
+    assignY.min=0; assignY.max=Math.max(0, allowedRows-1);
+    validateAssignForm();
+    if(assignModal){ assignModal.show(); } else { assignModalEl.classList.add('show'); assignModalEl.style.display='block'; }
+  }
+  function closeAssignModal(){ if(assignModal){ assignModal.hide(); } else { assignModalEl.classList.remove('show'); assignModalEl.style.display='none'; } }
+  assignX?.addEventListener('input', validateAssignForm);
+  assignY?.addEventListener('input', validateAssignForm);
+
+  assignForm?.addEventListener('submit', async function(e){ e.preventDefault(); const productId=assignProductId.value; const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
+    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no válidos'); return; }
+    if(y<0 || y>=allowedRows){ alert('Fila fuera de rango'); return; }
+    if(x<0 || x>=matrixColumns){ alert('Columna fuera de rango'); return; }
+    if(reservedRows.has(y)) { alert('La fila indicada está reservada por un título'); return; }
+    try{
+      const token=document.querySelector('input[name="__RequestVerificationToken"]').value;
+      const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token);
+      const resp=await fetch('/Cafe?handler=PlaceUnassigned',{method:'POST',body:fd});
+      if(resp.ok){ closeAssignModal(); location.reload(); } else { alert('Error: '+await resp.text()); }
+    }catch(err){ console.error(err); alert('Error al asignar coordenadas'); }
+  });
+
+  const sectionRows=[...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b)=>parseInt(a.dataset.y)-parseInt(b.dataset.y));
+  const toggleButtons=[...document.querySelectorAll('.toggle-section')];
+  function getSectionRange(row){ const yStart=parseInt(row.dataset.y); const idx=sectionRows.indexOf(row); const next= idx>=0 && idx+1<sectionRows.length ? sectionRows[idx+1] : null; const yEnd = next ? (parseInt(next.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd}; }
+  function setSectionCollapsed(row, collapsed){ const icon=row.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-up', !collapsed); icon.classList.toggle('bi-chevron-down', collapsed); } const {yStart,yEnd}=getSectionRange(row); allMatrixCells.forEach(c=>{ const y=parseInt(c.dataset.y); if(!Number.isNaN(y) && y>yStart && y<=yEnd){ c.classList.toggle('hidden-by-section', collapsed); }}); }
+  toggleButtons.forEach(btn=>{ btn.addEventListener('click', function(){ const row=this.closest('.section-row'); const collapsed=row.classList.toggle('section-collapsed'); setSectionCollapsed(row, collapsed); }); });
+
+  dragAreas.forEach(dragArea=>{ const productCard=dragArea.closest('.card'); const productId=productCard.dataset.productId;
+    dragArea.addEventListener('dragstart',function(e){ e.stopPropagation(); this.classList.add('dragging'); productCard.classList.add('being-dragged'); e.dataTransfer.setData('text/plain', productId); e.dataTransfer.effectAllowed='move'; });
+    dragArea.addEventListener('dragend',function(){ this.classList.remove('dragging'); productCard.classList.remove('being-dragged'); dropCells.forEach(c=>c.classList.remove('drag-over')); stopAutoScroll(); });
+    dragArea.addEventListener('mousedown',e=>e.stopPropagation());
+  });
+
+  dropCells.forEach(cell=>{
+    cell.addEventListener('dragover',function(e){ const y=parseInt(this.dataset.y); if(y>=allowedRows){ return; } e.preventDefault(); e.dataTransfer.dropEffect='move'; this.classList.add('drag-over'); handleAutoScroll(e.clientY); });
+    cell.addEventListener('dragleave',function(e){ if(!this.contains(e.relatedTarget)) this.classList.remove('drag-over'); });
+    cell.addEventListener('drop',function(e){ e.preventDefault(); this.classList.remove('drag-over'); stopAutoScroll(); const productId=e.dataTransfer.getData('text/plain'); const x=parseInt(this.dataset.x); const y=parseInt(this.dataset.y); if(x>=0&&x<matrixColumns&&y>=0&&y<matrixRows&&y<allowedRows&&!reservedRows.has(y)){ updateProductPosition(productId,x,y); } });
+  });
+
+  function handleAutoScroll(mouseY){ const vh=window.innerHeight; if(vh - mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: scrollSpeed, behavior: 'auto'}); }, 16);} } else if(mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: -scrollSpeed, behavior: 'auto'}); }, 16);} } else { stopAutoScroll(); } }
+  function stopAutoScroll(){ if(autoScrollInterval){ clearInterval(autoScrollInterval); autoScrollInterval=null; } }
+
+  document.addEventListener('selectstart',function(e){ if(e.target.closest('.non-draggable')){ e.preventDefault(); return false; }});
+
+  document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); const isUnassigned=card && card.dataset.unassigned === 'true'; if(card && (card.dataset.productId || isUnassigned)){
+      e.preventDefault(); contextTargetCard=card; contextIsUnassigned=!!isUnassigned;
+      if(isUnassigned){
+        openAssignModal(card.dataset.productId);
+        if(contextMenu) contextMenu.classList.add('d-none');
+        return;
+      }
+      const btnVaciar=document.getElementById('btnVaciarCelda'); const btnAsignar=document.getElementById('btnAsignarCoordenadas');
+      if(btnAsignar){ btnAsignar.classList.add('d-none'); }
+      if(btnVaciar){ btnVaciar.classList.remove('d-none'); }
+      contextMenu.style.top=e.clientY+'px'; contextMenu.style.left=e.clientX+'px'; contextMenu.classList.remove('d-none');
+    }
+  });
+  document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
+
+  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
+
+  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Cafe?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
+  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Cafe?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
+ });
+</script>
+}

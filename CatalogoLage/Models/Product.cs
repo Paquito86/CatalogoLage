@@ -43,9 +43,17 @@ public class Product
     public int? GrapeTypeId { get; set; }
     public GrapeType? GrapeType { get; set; }
 
-    // Coordenadas para matriz de drag and drop
+    // Coordenadas para matriz de drag and drop - Vinos (existentes)
     public int? MatrixX { get; set; }
     public int? MatrixY { get; set; }
+
+    // Coordenadas para matriz de Destilados
+    public int? MatrixXSpirits { get; set; }
+    public int? MatrixYSpirits { get; set; }
+
+    // Coordenadas para matriz de Café e Infusiones
+    public int? MatrixXCafe { get; set; }
+    public int? MatrixYCafe { get; set; }
 
     public bool IsWine => !string.IsNullOrWhiteSpace(Winery);
 }
