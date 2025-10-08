@@ -4,10 +4,25 @@
     ViewData["Title"] = "Productos";
 }
 <h1>Productos</h1>
-<p><a asp-page="Create" class="btn btn-primary">Nuevo Producto</a> <a asp-page="../Categories/Index" class="btn btn-secondary">Categorías</a></p>
+<p>
+    <a asp-page="Create" class="btn btn-primary">Nuevo Producto</a>
+    <a asp-page="../Categories/Index" class="btn btn-secondary">Categorías</a>
+</p>
+<form method="get" class="row g-2 mb-3" role="search">
+    <div class="col-sm-6 col-md-8">
+        <input asp-for="Q" class="form-control" placeholder="Buscar por nombre, bodega o D.O." />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Buscar</button>
+    </div>
+    <div class="col-auto">
+        <a asp-page="./Index" class="btn btn-outline-secondary" asp-route-q="">Limpiar</a>
+    </div>
+</form>
 <table class="table table-striped">
     <thead>
         <tr>
+            <th style="width:2.5rem;"><input type="checkbox" id="selectAll" class="form-check-input" title="Seleccionar todos" /></th>
             <th>Nombre</th>
             <th>Fabricante/Bodega</th>
             <th>Categoría</th>
@@ -19,6 +34,7 @@
 @foreach (var p in Model.Products)
 {
     <tr>
+        <td><input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@p.Id" /></td>
         <td>@p.Name</td>
         <td>@(p.IsWine ? p.Winery : p.Manufacturer)</td>
         <td>@p.Category?.Name</td>
@@ -31,3 +47,32 @@
 }
     </tbody>
 </table>
+<script>
+(function(){
+  const selectAll = document.getElementById('selectAll');
+  const tbody = document.querySelector('table tbody');
+  function getRowChecks(){ return tbody ? Array.from(tbody.querySelectorAll('input.row-check')) : []; }
+  function refreshHeader(){
+    const cbs = getRowChecks();
+    const any = cbs.some(cb => cb.checked);
+    const all = cbs.length > 0 && cbs.every(cb => cb.checked);
+    if(selectAll){
+      selectAll.checked = all;
+      selectAll.indeterminate = !all && any;
+    }
+  }
+  if(selectAll){
+    selectAll.addEventListener('change', function(){
+      getRowChecks().forEach(cb => cb.checked = selectAll.checked);
+      refreshHeader();
+    });
+  }
+  tbody?.addEventListener('change', function(e){
+    if(e.target && e.target.classList.contains('row-check')){
+      refreshHeader();
+    }
+  });
+  // init
+  refreshHeader();
+})();
+</script>
