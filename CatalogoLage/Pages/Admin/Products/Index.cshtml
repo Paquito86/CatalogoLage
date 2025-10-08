@@ -4,37 +4,56 @@
     ViewData["Title"] = "Productos";
 }
 <h1>Productos</h1>
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @msg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 <p>
     <a asp-page="Create" class="btn btn-primary">Nuevo Producto</a>
     <a asp-page="../Categories/Index" class="btn btn-secondary">Categorías</a>
 </p>
 <form method="get" class="row g-2 mb-3" role="search">
-    <div class="col-sm-6 col-md-8">
+    <div class="col-sm-6 col-md-5">
         <input asp-for="Q" class="form-control" placeholder="Buscar por nombre, bodega o D.O." />
+    </div>
+    <div class="col-sm-4 col-md-4">
+        <select asp-for="CategoryFilterId" class="form-select" asp-items="Model.CategoryOptions">
+            <option value="">-- Todas las categorías --</option>
+        </select>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-outline-primary">Buscar</button>
     </div>
     <div class="col-auto">
-        <a asp-page="./Index" class="btn btn-outline-secondary" asp-route-q="">Limpiar</a>
+        <a asp-page="./Index" class="btn btn-outline-secondary" asp-route-q="" asp-route-categoryFilterId="">Limpiar</a>
     </div>
 </form>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th style="width:2.5rem;"><input type="checkbox" id="selectAll" class="form-check-input" title="Seleccionar todos" /></th>
-            <th>Nombre</th>
-            <th>Fabricante/Bodega</th>
-            <th>Categoría</th>
-            <th>Precio</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
+<form method="post">
+    <input name="Q" type="hidden" value="@Model.Q" />
+    <input name="CategoryFilterId" type="hidden" value="@Model.CategoryFilterId" />
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th style="width:2.5rem;">
+                    <input type="checkbox" id="selectAll" class="form-check-input" title="Seleccionar todos" />
+                </th>
+                <th>Nombre</th>
+                <th>Fabricante/Bodega</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
 @foreach (var p in Model.Products)
 {
     <tr>
-        <td><input type="checkbox" class="form-check-input row-check" name="selectedIds" value="@p.Id" /></td>
+        <td>
+            <input type="checkbox" class="form-check-input row-check" name="SelectedIds" value="@p.Id" />
+        </td>
         <td>@p.Name</td>
         <td>@(p.IsWine ? p.Winery : p.Manufacturer)</td>
         <td>@p.Category?.Name</td>
@@ -45,12 +64,54 @@
         </td>
     </tr>
 }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+
+    <div id="bulkBar" class="position-fixed bottom-0 start-50 translate-middle-x mb-3" style="display:none; z-index:1030;">
+        <div class="card shadow border-0">
+            <div class="card-body d-flex align-items-center gap-2">
+                <div><strong id="selectedCount">0</strong> seleccionado(s)</div>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#bulkCategoryModal">
+                    Cambiar categoría
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bulkCategoryModal" tabindex="-1" aria-labelledby="bulkCategoryLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkCategoryLabel">Cambiar categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nueva categoría</label>
+                        <select asp-for="NewCategoryId" class="form-select" asp-items="Model.CategoryOptions">
+                            <option value="">-- Selecciona una categoría --</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-warning" role="alert">
+                        ¿Seguro que quieres modificar la categoría de los elementos seleccionados? Esta acción no se puede deshacer.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" formaction="?handler=BulkChangeCategory">Confirmar cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
 <script>
 (function(){
   const selectAll = document.getElementById('selectAll');
   const tbody = document.querySelector('table tbody');
+  const bulkBar = document.getElementById('bulkBar');
+  const selectedCount = document.getElementById('selectedCount');
+
   function getRowChecks(){ return tbody ? Array.from(tbody.querySelectorAll('input.row-check')) : []; }
   function refreshHeader(){
     const cbs = getRowChecks();
@@ -59,6 +120,10 @@
     if(selectAll){
       selectAll.checked = all;
       selectAll.indeterminate = !all && any;
+    }
+    if(bulkBar){
+      bulkBar.style.display = any ? 'block' : 'none';
+      if(selectedCount) selectedCount.textContent = cbs.filter(cb => cb.checked).length;
     }
   }
   if(selectAll){
