@@ -50,9 +50,16 @@
         <tbody>
 @foreach (var p in Model.Products)
 {
+    var hasWinery = !string.IsNullOrWhiteSpace(p.Winery);
+    var hasManufacturer = !string.IsNullOrWhiteSpace(p.Manufacturer);
     <tr>
         <td>
-            <input type="checkbox" class="form-check-input row-check" name="SelectedIds" value="@p.Id" />
+            <input type="checkbox"
+                   class="form-check-input row-check"
+                   name="SelectedIds"
+                   value="@p.Id"
+                   data-has-winery="@(hasWinery.ToString().ToLower())"
+                   data-has-manufacturer="@(hasManufacturer.ToString().ToLower())" />
         </td>
         <td>@p.Name</td>
         <td>@(p.IsWine ? p.Winery : p.Manufacturer)</td>
@@ -73,6 +80,9 @@
                 <div><strong id="selectedCount">0</strong> seleccionado(s)</div>
                 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#bulkCategoryModal">
                     Cambiar categoría
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkMakerModal">
+                    Asignar bodega/fabricante
                 </button>
             </div>
         </div>
@@ -103,6 +113,36 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="bulkMakerModal" tabindex="-1" aria-labelledby="bulkMakerLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkMakerLabel">Asignar bodega o fabricante</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="MakerField" class="form-label">Campo a asignar</label>
+                        <select asp-for="MakerField" class="form-select">
+                            <option value="">-- Selecciona campo --</option>
+                            <option value="Winery">Bodega</option>
+                            <option value="Manufacturer">Fabricante</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewMakerValue" class="form-label">Nuevo valor</label>
+                        <input asp-for="NewMakerValue" class="form-control" placeholder="Introduce la bodega o fabricante" />
+                    </div>
+                    <div id="makerOverrideWarning" class="alert alert-warning d-none" role="alert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="bulkMakerConfirm" type="submit" class="btn btn-primary" formaction="?handler=BulkAssignMaker" disabled>Confirmar cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </form>
 
 <script>
@@ -111,6 +151,12 @@
   const tbody = document.querySelector('table tbody');
   const bulkBar = document.getElementById('bulkBar');
   const selectedCount = document.getElementById('selectedCount');
+
+  const makerModal = document.getElementById('bulkMakerModal');
+  const makerField = document.getElementById('MakerField');
+  const newMakerValue = document.getElementById('NewMakerValue');
+  const makerWarning = document.getElementById('makerOverrideWarning');
+  const makerConfirm = document.getElementById('bulkMakerConfirm');
 
   function getRowChecks(){ return tbody ? Array.from(tbody.querySelectorAll('input.row-check')) : []; }
   function refreshHeader(){
@@ -126,17 +172,51 @@
       if(selectedCount) selectedCount.textContent = cbs.filter(cb => cb.checked).length;
     }
   }
+  function getSelected(){ return getRowChecks().filter(cb => cb.checked); }
+  function countOverrides(field){
+    const selected = getSelected();
+    if(field === 'Winery') return selected.filter(cb => cb.dataset.hasWinery === 'true').length;
+    if(field === 'Manufacturer') return selected.filter(cb => cb.dataset.hasManufacturer === 'true').length;
+    return 0;
+  }
+  function updateMakerUI(){
+    const field = makerField ? makerField.value : '';
+    const value = newMakerValue ? newMakerValue.value.trim() : '';
+    const overrides = countOverrides(field);
+    if(makerWarning){
+      if(field && overrides > 0){
+        const label = field === 'Winery' ? 'bodega' : 'fabricante';
+        makerWarning.textContent = `Algunos productos ya tienen ${label} asignado. ¿Seguro que quieres modificar el ${label} de ${overrides} producto(s)?`;
+        makerWarning.classList.remove('d-none');
+      } else {
+        makerWarning.classList.add('d-none');
+        makerWarning.textContent = '';
+      }
+    }
+    if(makerConfirm){ makerConfirm.disabled = !(field && value.length > 0); }
+  }
+
   if(selectAll){
     selectAll.addEventListener('change', function(){
       getRowChecks().forEach(cb => cb.checked = selectAll.checked);
       refreshHeader();
+      updateMakerUI();
     });
   }
   tbody?.addEventListener('change', function(e){
     if(e.target && e.target.classList.contains('row-check')){
       refreshHeader();
+      updateMakerUI();
     }
   });
+
+  makerField?.addEventListener('change', updateMakerUI);
+  newMakerValue?.addEventListener('input', updateMakerUI);
+
+  makerModal?.addEventListener('show.bs.modal', function(){
+    updateMakerUI();
+  });
+
   // init
   refreshHeader();
 })();

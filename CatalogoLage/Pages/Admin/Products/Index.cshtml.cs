@@ -27,6 +27,12 @@ public class IndexModel : PageModel
     [BindProperty]
     public int? NewCategoryId { get; set; }
 
+    [BindProperty]
+    public string? MakerField { get; set; } // "Winery" or "Manufacturer"
+
+    [BindProperty]
+    public string? NewMakerValue { get; set; }
+
     public async Task OnGetAsync()
     {
         // Categories select list (for filter + modal)
@@ -72,6 +78,31 @@ public class IndexModel : PageModel
         await _ctx.SaveChangesAsync();
 
         TempData["StatusMessage"] = $"Se actualizaron {products.Count} producto(s).";
+        return RedirectToPage(new { Q, CategoryFilterId });
+    }
+
+    public async Task<IActionResult> OnPostBulkAssignMakerAsync()
+    {
+        if (SelectedIds is null || SelectedIds.Count == 0 || string.IsNullOrWhiteSpace(MakerField) || string.IsNullOrWhiteSpace(NewMakerValue))
+        {
+            TempData["StatusMessage"] = "No se han seleccionado elementos o faltan datos para la asignación.";
+            return RedirectToPage(new { Q, CategoryFilterId });
+        }
+
+        var products = await _ctx.Products.Where(p => SelectedIds.Contains(p.Id)).ToListAsync();
+        foreach (var p in products)
+        {
+            if (string.Equals(MakerField, "Winery", StringComparison.OrdinalIgnoreCase))
+            {
+                p.Winery = NewMakerValue;
+            }
+            else if (string.Equals(MakerField, "Manufacturer", StringComparison.OrdinalIgnoreCase))
+            {
+                p.Manufacturer = NewMakerValue;
+            }
+        }
+        await _ctx.SaveChangesAsync();
+        TempData["StatusMessage"] = $"Se asignó '{NewMakerValue}' a {products.Count} producto(s) en el campo {(MakerField == "Winery" ? "Bodega" : "Fabricante")}.";
         return RedirectToPage(new { Q, CategoryFilterId });
     }
 }
