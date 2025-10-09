@@ -9,18 +9,21 @@
     <input asp-for="Name" class="form-control" />
     <span asp-validation-for="Name" class="text-danger"></span>
 </div>
+
+<div class="mb-3">
+    <label asp-for="CategoryId" class="form-label">Categoría</label>
+    <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>
+</div>
+
+<!--TODO: ELIGIR ENTRE BODEGA O FABRICANTE EN FUNCIÓN DE LA CATEGORÍA DEL PRODUCTO-->
 <!--<div class="mb-3">
     <label asp-for="Manufacturer" class="form-label">Fabricante</label>
     <input asp-for="Manufacturer" class="form-control" />
     <span class="form-text">Para vinos, dejar vacío y completar Bodega</span>
 </div>-->
 <div class="mb-3">
-    <label asp-for="Winery" class="form-label">Bodega o Fabricante</label>
+    <label asp-for="Winery" class="form-label">Bodega</label>
     <input asp-for="Winery" class="form-control" />
-</div>
-<div class="mb-3">
-    <label asp-for="CategoryId" class="form-label">Categoría</label>
-    <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>
 </div>
 <div class="mb-3">
     <label asp-for="GrapeTypeId" class="form-label">Tipo de uva (opcional)</label>
