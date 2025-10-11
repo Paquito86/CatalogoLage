@@ -3,24 +3,26 @@
 @{
     var categories = Ctx.Categories.OrderBy(c=>c.Name).ToList();
     var grapeTypes = Ctx.GrapeTypes.OrderBy(g=>g.Name).ToList();
+    // Categorías de vino
+    var wineCategoryNames = new List<string> { "Vinos Dulces", "Vino Rosado", "Vino Espumoso", "Vino Tinto", "Vino Blanco" };
 }
 <div class="mb-3">
     <label asp-for="Name" class="form-label"></label>
     <input asp-for="Name" class="form-control" />
     <span asp-validation-for="Name" class="text-danger"></span>
 </div>
-<!--<div class="mb-3">
-    <label asp-for="Manufacturer" class="form-label">Fabricante</label>
-    <input asp-for="Manufacturer" class="form-control" />
-    <span class="form-text">Para vinos, dejar vacío y completar Bodega</span>
-</div>-->
 <div class="mb-3">
+    <label asp-for="CategoryId" class="form-label">Categoría</label>
+    <select asp-for="CategoryId" class="form-select" id="categorySelect" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>
+</div>
+<div class="mb-3" id="wineryField">
     <label asp-for="Winery" class="form-label">Bodega</label>
     <input asp-for="Winery" class="form-control" />
 </div>
-<div class="mb-3">
-    <label asp-for="CategoryId" class="form-label">Categoría</label>
-    <select asp-for="CategoryId" class="form-select" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>
+<div class="mb-3" id="manufacturerField" style="display: none;">
+    <label asp-for="Manufacturer" class="form-label">Fabricante</label>
+    <input asp-for="Manufacturer" class="form-control" />
+    <span class="form-text">Para productos no vinos</span>
 </div>
 <div class="mb-3">
     <label asp-for="GrapeTypeId" class="form-label">Tipo de uva (opcional)</label>
@@ -64,3 +66,27 @@
     <label asp-for="Description" class="form-label"></label>
     <textarea asp-for="Description" rows="4" class="form-control"></textarea>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('categorySelect');
+    const wineryField = document.getElementById('wineryField');
+    const manufacturerField = document.getElementById('manufacturerField');
+    const wineCategoryNames = @Html.Raw(Json.Serialize(wineCategoryNames));
+
+    function updateFields() {
+        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        const categoryName = selectedOption ? selectedOption.text : '';
+        const isWine = wineCategoryNames.includes(categoryName);
+        if (isWine) {
+            wineryField.style.display = 'block';
+            manufacturerField.style.display = 'none';
+        } else {
+            wineryField.style.display = 'none';
+            manufacturerField.style.display = 'block';
+        }
+    }
+
+    categorySelect.addEventListener('change', updateFields);
+    updateFields(); // Inicial
+});
+</script>
