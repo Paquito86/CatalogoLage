@@ -11,6 +11,11 @@
     <input asp-for="Name" class="form-control" />
     <span asp-validation-for="Name" class="text-danger"></span>
 </div>
+<!--<div class="mb-3">
+    <label asp-for="Manufacturer" class="form-label">Fabricante</label>
+    <input asp-for="Manufacturer" class="form-control" />
+    <span class="form-text">Para vinos, dejar vacío y completar Bodega</span>
+</div>-->
 <div class="mb-3">
     <label asp-for="CategoryId" class="form-label">Categoría</label>
     <select asp-for="CategoryId" class="form-select" id="categorySelect" asp-items="@(new SelectList(categories, nameof(CatalogoLage.Models.Category.Id), nameof(CatalogoLage.Models.Category.Name)))"></select>

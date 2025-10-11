@@ -15,8 +15,15 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Categories = await _ctx.Categories.OrderBy(c => c.Name).ToListAsync();
-        ProductCounts = await _ctx.Products.GroupBy(p=>p.CategoryId)
-            .ToDictionaryAsync(g=>g.Key, g=>g.Count());
+        Categories = await _ctx.Categories
+            .OrderBy(c => c.SortOrder ?? 1)
+            .ThenBy(c => c.Name)
+            .ToListAsync();
+
+        var counts = await _ctx.Products
+            .GroupBy(p => p.CategoryId)
+            .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+            .ToListAsync();
+        ProductCounts = counts.ToDictionary(x => x.CategoryId, x => x.Count);
     }
 }

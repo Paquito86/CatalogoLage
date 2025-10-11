@@ -17,49 +17,45 @@ public class IndexModel : PageModel
     public List<string> Origins { get; set; } = new();
     public List<GrapeType> GrapeTypes { get; set; } = new();
 
-    // Matriz dinámica para mostrar productos organizados
     public Product?[,] ProductMatrix { get; set; } = new Product[0, 0];
     public List<Product> UnpositionedProducts { get; set; } = new();
     public bool IsAdminMode { get; set; }
     public int MatrixRows { get; set; }
     public int MatrixColumns { get; set; } = 3;
 
-    // Títulos de filas (ocupan una fila completa)
     public List<CatalogTitleRow> TitleRows { get; set; } = new();
-    // Celdas vacías reservadas
     public HashSet<(int x,int y)> EmptyCells { get; set; } = new();
 
-    // Límite superior permitido de filas (cálculo global, sin filtros)
     public int MaxAllowedRows { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public string? Query { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Query { get; set; }
+    [BindProperty(SupportsGet = true)] public int? CategoryId { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Winery { get; set; }
+    [BindProperty(SupportsGet = true)] public string? Origin { get; set; }
+    [BindProperty(SupportsGet = true)] public int? GrapeTypeId { get; set; }
+    [BindProperty(SupportsGet = true)] public bool AdminMode { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public int? CategoryId { get; set; }
-
-    [BindProperty(SupportsGet = true)]
-    public string? Winery { get; set; }
-
-    [BindProperty(SupportsGet = true)]
-    public string? Origin { get; set; }
-
-    [BindProperty(SupportsGet = true)]
-    public int? GrapeTypeId { get; set; }
-
-    [BindProperty(SupportsGet = true)]
-    public bool AdminMode { get; set; }
+    private static IQueryable<Product> WinesOnly(IQueryable<Product> q)
+        => q.Where(p => p.Category != null && (p.Category.SortOrder == null || p.Category.SortOrder == 1));
 
     public async Task OnGetAsync()
     {
-        Categories = await _ctx.Categories.OrderBy(c => c.Name).ToListAsync();
-        Wineries = await _ctx.Products
+        Categories = await _ctx.Categories
+            .Where(c => c.SortOrder == null || c.SortOrder == 1)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        var baseProducts = WinesOnly(_ctx.Products
+            .Include(p => p.Category)
+            .Include(p => p.GrapeType));
+
+        Wineries = await baseProducts
             .Where(p => p.Winery != null && p.Winery != "")
             .Select(p => p.Winery!)
             .Distinct()
             .OrderBy(x => x)
             .ToListAsync();
-        Origins = await _ctx.Products
+        Origins = await baseProducts
             .Where(p => p.Origin != null && p.Origin != "")
             .Select(p => p.Origin!)
             .Distinct()
@@ -67,9 +63,7 @@ public class IndexModel : PageModel
             .ToListAsync();
         GrapeTypes = await _ctx.GrapeTypes.OrderBy(g => g.Name).ToListAsync();
 
-        var q = _ctx.Products.Include(p => p.Category).Include(p=>p.GrapeType).AsQueryable();
-        
-        // Aplicar filtros
+        var q = baseProducts;
         if (!string.IsNullOrWhiteSpace(Query))
         {
             var term = $"%{Query.Trim()}%";
@@ -88,20 +82,14 @@ public class IndexModel : PageModel
         if (!string.IsNullOrWhiteSpace(Winery)) q = q.Where(p => p.Winery == Winery);
         if (!string.IsNullOrWhiteSpace(Origin)) q = q.Where(p => p.Origin == Origin);
         if (GrapeTypeId.HasValue) q = q.Where(p => p.GrapeTypeId == GrapeTypeId.Value);
-        
+
         Products = await q.OrderBy(p => p.Name).ToListAsync();
 
-        // Cargar títulos de filas y celdas vacías
         TitleRows = await _ctx.CatalogTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
         EmptyCells = (await _ctx.CatalogEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
 
-        // Configurar modo administrador
         IsAdminMode = AdminMode && User.IsInRole("Admin");
-        
-        // Organizar
         OrganizeProductsInMatrix();
-
-        // Calcular el límite superior permitido de filas (global, sin filtros)
         MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
     }
 
@@ -109,7 +97,7 @@ public class IndexModel : PageModel
     {
         int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
         int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
-        int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
+        int maxProductY = (await WinesOnly(_ctx.Products.Include(p=>p.Category)).MaxAsync(p => (int?)p.MatrixY)) ?? -1;
         int maxRows = Math.Max(1, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
         return maxRows;
     }
@@ -121,11 +109,10 @@ public class IndexModel : PageModel
         int maxTitleY = reservedRows.DefaultIfEmpty(-1).Max();
         int maxEmptyY = EmptyCells.Select(e => e.y).DefaultIfEmpty(-1).Max();
         MatrixRows = Math.Max(1, Math.Max(maxProductY + 1, Math.Max(maxTitleY + 1, maxEmptyY + 1)));
-        
+
         ProductMatrix = new Product[MatrixRows, MatrixColumns];
         UnpositionedProducts = new List<Product>();
 
-        // Solo colocar productos con coordenadas válidas. El resto quedará en UnpositionedProducts.
         foreach (var product in Products)
         {
             bool validCoords = product.MatrixX.HasValue && product.MatrixY.HasValue &&
@@ -143,32 +130,26 @@ public class IndexModel : PageModel
                 UnpositionedProducts.Add(product);
             }
         }
-        // No auto-ubicar productos sin coordenadas.
     }
 
     public async Task<IActionResult> OnPostUpdatePositionAsync(int productId, int x, int y)
     {
         if (!User.IsInRole("Admin")) return Forbid();
 
-        var product = await _ctx.Products.FindAsync(productId);
+        var product = await _ctx.Products.Include(p=>p.Category).FirstOrDefaultAsync(p=>p.Id==productId && (p.Category!.SortOrder==null || p.Category!.SortOrder==1));
         if (product == null) return NotFound();
 
         var reservedRows = await _ctx.CatalogTitleRows.Select(t => t.MatrixY).ToListAsync();
         if (reservedRows.Contains(y)) return BadRequest("No se puede colocar un producto en una fila de título");
 
-        // Si la celda estaba reservada como vacía, la liberamos
         var emptyCell = await _ctx.CatalogEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
-        if (emptyCell != null)
-        {
-            _ctx.CatalogEmptyCells.Remove(emptyCell);
-        }
+        if (emptyCell != null) _ctx.CatalogEmptyCells.Remove(emptyCell);
 
-        // Calcular filas máximas permitidas de forma consistente con la vista (global, sin filtros)
         int maxRows = await ComputeMaxAllowedRowsAsync();
-
         if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows) return BadRequest("Coordenadas inválidas");
 
-        var existingProduct = await _ctx.Products.FirstOrDefaultAsync(p => p.MatrixX == x && p.MatrixY == y && p.Id != productId);
+        var existingProduct = await WinesOnly(_ctx.Products.Include(p=>p.Category))
+            .FirstOrDefaultAsync(p => p.MatrixX == x && p.MatrixY == y && p.Id != productId);
         if (existingProduct != null)
         {
             existingProduct.MatrixX = product.MatrixX;
@@ -185,24 +166,20 @@ public class IndexModel : PageModel
     {
         if (!User.IsInRole("Admin")) return Forbid();
         if (x < 0 || x >= MatrixColumns) return BadRequest("Columna fuera de rango");
-        var product = await _ctx.Products.FindAsync(productId);
+        var product = await _ctx.Products.Include(p=>p.Category).FirstOrDefaultAsync(p=>p.Id==productId && (p.Category!.SortOrder==null || p.Category!.SortOrder==1));
         if (product == null) return NotFound();
-        // Opcional: exigir que esté sin coordenadas
-        // if (product.MatrixX.HasValue || product.MatrixY.HasValue) return BadRequest("El producto ya tiene coordenadas");
 
         int maxRows = await ComputeMaxAllowedRowsAsync();
         if (y < 0 || y >= maxRows) return BadRequest("Fila fuera de rango");
 
-        // Fila de título reservada
         bool isTitleRow = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
         if (isTitleRow) return BadRequest("La fila indicada está reservada por un título");
 
-        // Celda reservada como vacía
-        bool isEmptyReserved = await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == y);
-        if (isEmptyReserved) return BadRequest("La celda está reservada como vacía");
+        var emptyCell = await _ctx.CatalogEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
+        if (emptyCell != null) _ctx.CatalogEmptyCells.Remove(emptyCell);
 
-        // Celda ocupada por otro producto
-        bool occupied = await _ctx.Products.AnyAsync(p => p.MatrixX == x && p.MatrixY == y);
+        bool occupied = await WinesOnly(_ctx.Products.Include(p=>p.Category))
+            .AnyAsync(p => p.MatrixX == x && p.MatrixY == y);
         if (occupied) return BadRequest("La celda ya está ocupada");
 
         product.MatrixX = x;
@@ -259,10 +236,9 @@ public class IndexModel : PageModel
     {
         if (!User.IsInRole("Admin")) return Forbid();
 
-        var product = await _ctx.Products.FindAsync(productId);
+        var product = await _ctx.Products.Include(p=>p.Category).FirstOrDefaultAsync(p=>p.Id==productId && (p.Category!.SortOrder==null || p.Category!.SortOrder==1));
         if (product == null) return NotFound();
 
-        // No exigir que el producto tenga las mismas coordenadas persistidas que la vista.
         product.MatrixX = null;
         product.MatrixY = null;
 
@@ -278,7 +254,7 @@ public class IndexModel : PageModel
     {
         if (!User.IsInRole("Admin")) return Forbid();
         if (y < 0) y = 0;
-        int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
+        int maxProductY = (await WinesOnly(_ctx.Products.Include(p=>p.Category)).MaxAsync(p => (int?)p.MatrixY)) ?? -1;
         int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
         int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
         int maxY = new[] { maxProductY, maxTitleY, maxEmptyY }.Max();
@@ -286,7 +262,7 @@ public class IndexModel : PageModel
         int newRowY = y + 1;
         if (newRowY > maxY + 1) newRowY = maxY + 1;
 
-        var productsToShift = await _ctx.Products.Where(p => p.MatrixY >= newRowY).ToListAsync();
+        var productsToShift = await WinesOnly(_ctx.Products.Include(p=>p.Category)).Where(p => p.MatrixY >= newRowY).ToListAsync();
         foreach (var p in productsToShift)
         {
             p.MatrixY = p.MatrixY + 1;
@@ -302,7 +278,13 @@ public class IndexModel : PageModel
             e.Y += 1;
         }
 
-        // Importante: NO reservar automáticamente la nueva fila.
+        for (int x = 0; x < MatrixColumns; x++)
+        {
+            if (!await _ctx.CatalogEmptyCells.AnyAsync(c => c.X == x && c.Y == newRowY))
+            {
+                _ctx.CatalogEmptyCells.Add(new CatalogEmptyCell { X = x, Y = newRowY });
+            }
+        }
 
         await _ctx.SaveChangesAsync();
         return RedirectToPage(new { AdminMode = true });
@@ -313,25 +295,21 @@ public class IndexModel : PageModel
         if (!User.IsInRole("Admin")) return Forbid();
         if (y < 0) y = 0;
 
-        // Mover productos fuera de la fila antes de eliminarla
         await MoveProductsOutOfRowAsync(y);
 
-        // Eliminar título en esa fila (si existe)
         var titlesAtRow = await _ctx.CatalogTitleRows.Where(t => t.MatrixY == y).ToListAsync();
         if (titlesAtRow.Count > 0)
         {
             _ctx.CatalogTitleRows.RemoveRange(titlesAtRow);
         }
 
-        // Eliminar celdas vacías de esa fila
         var emptiesAtRow = await _ctx.CatalogEmptyCells.Where(e => e.Y == y).ToListAsync();
         if (emptiesAtRow.Count > 0)
         {
             _ctx.CatalogEmptyCells.RemoveRange(emptiesAtRow);
         }
 
-        // Desplazar hacia arriba todo lo que esté por debajo de y
-        var productsBelow = await _ctx.Products.Where(p => p.MatrixY > y).ToListAsync();
+        var productsBelow = await WinesOnly(_ctx.Products.Include(p=>p.Category)).Where(p => p.MatrixY > y).ToListAsync();
         foreach (var p in productsBelow)
         {
             p.MatrixY = (p.MatrixY ?? 0) - 1;
@@ -356,7 +334,7 @@ public class IndexModel : PageModel
         if (!User.IsInRole("Admin")) return Forbid();
         if (count <= 0) return RedirectToPage(new { AdminMode = true });
 
-        int maxProductY = (await _ctx.Products.MaxAsync(p => (int?)p.MatrixY)) ?? -1;
+        int maxProductY = (await WinesOnly(_ctx.Products.Include(p=>p.Category)).MaxAsync(p => (int?)p.MatrixY)) ?? -1;
         int maxTitleY = (await _ctx.CatalogTitleRows.MaxAsync(t => (int?)t.MatrixY)) ?? -1;
         int maxEmptyY = (await _ctx.CatalogEmptyCells.MaxAsync(e => (int?)e.Y)) ?? -1;
         int y = new[] { maxProductY, maxTitleY, maxEmptyY }.Max();
@@ -364,7 +342,7 @@ public class IndexModel : PageModel
         int deleted = 0;
         while (deleted < count && y >= 0)
         {
-            bool hasProduct = await _ctx.Products.AnyAsync(p => p.MatrixY == y);
+            bool hasProduct = await WinesOnly(_ctx.Products.Include(p=>p.Category)).AnyAsync(p => p.MatrixY == y);
             bool hasTitle = await _ctx.CatalogTitleRows.AnyAsync(t => t.MatrixY == y);
             if (hasProduct || hasTitle) break;
             var empties = await _ctx.CatalogEmptyCells.Where(e => e.Y == y).ToListAsync();
@@ -379,10 +357,13 @@ public class IndexModel : PageModel
 
     private async Task MoveProductsOutOfRowAsync(int targetRow)
     {
-        var productsInRow = await _ctx.Products.Where(p => p.MatrixY == targetRow).OrderBy(p => p.MatrixX).ToListAsync();
+        var productsInRow = await WinesOnly(_ctx.Products.Include(p=>p.Category))
+            .Where(p => p.MatrixY == targetRow)
+            .OrderBy(p => p.MatrixX)
+            .ToListAsync();
         if (productsInRow.Count == 0) return;
 
-        var allProducts = await _ctx.Products.ToListAsync();
+        var allProducts = await WinesOnly(_ctx.Products.Include(p=>p.Category)).ToListAsync();
         var reservedRows = (await _ctx.CatalogTitleRows.ToListAsync()).Select(t => t.MatrixY).ToHashSet();
         reservedRows.Add(targetRow);
         int maxY = allProducts.Where(p => p.MatrixY.HasValue).Select(p => p.MatrixY!.Value).DefaultIfEmpty(-1).Max();
@@ -430,7 +411,9 @@ public class IndexModel : PageModel
         }
         foreach (var p in productsInRow)
         {
-            int startX = p.MatrixX ?? 0; var (ny, nx) = FindNearestFreeByScan(targetRow, startX); p.MatrixX = nx; p.MatrixY = ny; occupied[ny, nx] = true;
+            int startX = p.MatrixX ?? 0;
+            var (ny, nx) = FindNearestFreeByScan(targetRow, startX);
+            p.MatrixX = nx; p.MatrixY = ny; occupied[ny, nx] = true;
         }
         await _ctx.SaveChangesAsync();
     }

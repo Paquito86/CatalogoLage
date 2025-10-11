@@ -4,6 +4,7 @@ using CatalogoLage.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CatalogoLage.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251007182853_AddPerCatalogCoordinates")]
+    partial class AddPerCatalogCoordinates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,28 +24,6 @@ namespace CatalogoLage.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CatalogoLage.Models.CatalogCafeEmptyCell", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("X")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Y")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("X", "Y")
-                        .IsUnique();
-
-                    b.ToTable("CatalogCafeEmptyCells");
-                });
 
             modelBuilder.Entity("CatalogoLage.Models.CatalogCafeTitleRow", b =>
                 {
@@ -88,28 +69,6 @@ namespace CatalogoLage.Migrations
                         .IsUnique();
 
                     b.ToTable("CatalogEmptyCells");
-                });
-
-            modelBuilder.Entity("CatalogoLage.Models.CatalogSpiritsEmptyCell", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("X")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Y")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("X", "Y")
-                        .IsUnique();
-
-                    b.ToTable("CatalogSpiritsEmptyCells");
                 });
 
             modelBuilder.Entity("CatalogoLage.Models.CatalogSpiritsTitleRow", b =>

@@ -1,15 +1,14 @@
 @page
-@model CatalogoLage.Pages.Catalog.IndexModel
+@model CatalogoLage.Pages.Cafe.IndexModel
 @{
-    ViewData["Title"] = "Cat√°logo";
+    ViewData["Title"] = "CafÈ e Infusiones";
 }
-<h1>Cat√°logo de Productos</h1>
+<h1>Cat·logo de CafÈ e Infusiones</h1>
 
 @if (User.IsInRole("Admin"))
 {
     <div class="mb-3">
         <form method="get" class="d-inline">
-            @* Preservar par√°metros de b√∫squeda *@
             @if (!string.IsNullOrEmpty(Model.Query)) { <input type="hidden" name="Query" value="@Model.Query" /> }
             @if (Model.CategoryId.HasValue) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
             @if (!string.IsNullOrEmpty(Model.Winery)) { <input type="hidden" name="Winery" value="@Model.Winery" /> }
@@ -19,18 +18,17 @@
             @if (Model.AdminMode)
             {
                 <input type="hidden" name="AdminMode" value="false" />
-                <button type="submit" class="btn btn-secondary">Salir del modo edici√≥n</button>
+                <button type="submit" class="btn btn-secondary">Salir del modo ediciÛn</button>
             }
             else
             {
                 <input type="hidden" name="AdminMode" value="true" />
-                <button type="submit" class="btn btn-warning">Modo edici√≥n de matriz</button>
+                <button type="submit" class="btn btn-warning">Modo ediciÛn de matriz</button>
             }
         </form>
     </div>
 }
 
-@* Token antifalsificaci√≥n *@
 @if (Model.IsAdminMode)
 {
     <form style="display: none;">
@@ -38,14 +36,51 @@
     </form>
 }
 
+@if (Model.IsAdminMode)
+{
+    <div class="alert alert-info mb-3">
+        <strong>Modo ediciÛn:</strong> Arrastra tarjetas. Usa el formulario inferior para crear tÌtulos. Cada tÌtulo ocupa una fila completa.
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <form method="post" asp-page-handler="CreateTitle" class="row g-2 align-items-end">
+            <input type="hidden" name="AdminMode" value="true" />
+            <div class="col-sm-6 col-md-5">
+                <label class="form-label mb-0 small" for="newTitleText">Nuevo tÌtulo</label>
+                <input id="newTitleText" name="text" class="form-control form-control-sm" placeholder="Texto del tÌtulo" required />
+            </div>
+            <div class="col-sm-3 col-md-2">
+                <label class="form-label mb-0 small" for="newTitleY">Fila</label>
+                <input id="newTitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
+            </div>
+            <div class="col-sm-3 col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear tÌtulo</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <form method="post" asp-page-handler="InsertRow" class="row g-2 align-items-end" id="formInsertRow">
+            <input type="hidden" name="AdminMode" value="true" />
+            <div class="col-sm-6 col-md-5">
+                <label class="form-label mb-0 small" for="insertRowY">Insertar fila en posiciÛn</label>
+                <input type="number" class="form-control form-control-sm" id="insertRowY" name="y" min="0" value="@Model.MatrixRows" />
+            </div>
+            <div class="col-sm-3 col-md-2 d-grid">
+                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">AÒadir fila</button>
+            </div>
+        </form>
+    </div>
+}
+
 <form method="get" class="mb-3">
     <div class="row g-2 align-items-end">
         <div class="col-md-6">
             <label for="q" class="form-label">Buscar</label>
-            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripci√≥n, fabricante o bodega" />
+            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripciÛn, fabricante o bodega" />
         </div>
         <div class="col-md-3">
-            <label for="categoryId" class="form-label">Categor√≠a</label>
+            <label for="categoryId" class="form-label">CategorÌa</label>
             <select id="categoryId" name="categoryId" class="form-select">
                 <option value="">-- Todas --</option>
                 @foreach (var c in Model.Categories)
@@ -58,77 +93,7 @@
             <button class="btn btn-primary" type="submit">Filtrar</button>
         </div>
     </div>
-    <div class="row g-2 mt-2">
-        <div class="col-md-4">
-            <label for="Winery" class="form-label">Bodega</label>
-            <select id="Winery" name="Winery" class="form-select">
-                <option value="">-- Todas --</option>
-                @foreach (var w in Model.Wineries)
-                {
-                    <option value="@w" selected="@(Model.Winery == w)">@w</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label for="Origin" class="form-label">Denominaci√≥n de Origen</label>
-            <select id="Origin" name="Origin" class="form-select">
-                <option value="">-- Todas --</option>
-                @foreach (var o in Model.Origins)
-                {
-                    <option value="@o" selected="@(Model.Origin == o)">@o</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label for="GrapeTypeId" class="form-label">Tipo de uva</label>
-            <select id="GrapeTypeId" name="GrapeTypeId" class="form-select">
-                <option value="">-- Todas --</option>
-                @foreach (var g in Model.GrapeTypes)
-                {
-                    <option value="@g.Id" selected="@(Model.GrapeTypeId == g.Id)">@g.Name</option>
-                }
-            </select>
-        </div>
-    </div>
-    @if (Model.AdminMode) { <input type="hidden" name="AdminMode" value="true" /> }
 </form>
-
-@if (Model.IsAdminMode)
-{
-    <div class="alert alert-info mb-3">
-        <strong>Modo edici√≥n:</strong> Arrastra tarjetas. Usa el formulario inferior para crear t√≠tulos. Cada t√≠tulo ocupa una fila completa.
-    </div>
-
-    <div class="mb-3 p-2 border rounded bg-light">
-        <form method="post" asp-page-handler="CreateTitle" class="row g-2 align-items-end">
-            <input type="hidden" name="AdminMode" value="true" />
-            <div class="col-sm-6 col-md-5">
-                <label class="form-label mb-0 small" for="newTitleText">Nuevo t√≠tulo</label>
-                <input id="newTitleText" name="text" class="form-control form-control-sm" placeholder="Texto del t√≠tulo" required />
-            </div>
-            <div class="col-sm-3 col-md-2">
-                <label class="form-label mb-0 small" for="newTitleY">Fila</label>
-                <input id="newTitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
-            </div>
-            <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear t√≠tulo</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="mb-3 p-2 border rounded bg-light">
-        <form method="post" asp-page-handler="InsertRow" class="row g-2 align-items-end" id="formInsertRow">
-            <input type="hidden" name="AdminMode" value="true" />
-            <div class="col-sm-6 col-md-5">
-                <label class="form-label mb-0 small" for="insertRowY">Insertar fila en posici√≥n</label>
-                <input type="number" class="form-control form-control-sm" id="insertRowY" name="y" min="0" value="@Model.MatrixRows" />
-            </div>
-            <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">A√±adir fila</button>
-            </div>
-        </form>
-    </div>
-}
 
 @{
     var titleRows = Model.TitleRows.ToDictionary(t => t.MatrixY);
@@ -146,11 +111,11 @@
                         <div class="d-flex align-items-center gap-2">
                             @if (Model.IsAdminMode)
                             {
-                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir secci√≥n">
+                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir secciÛn">
                                     <i class="bi bi-chevron-up"></i>
                                 </button>
                             }
-                            <h4 class="m-0">@t.Text @if(Model.IsAdminMode){<small class="text-muted ms-2">Fila @t.MatrixY</small>}</h4>
+                            <h4 class="m-0">@t.Text</h4>
                         </div>
                         @if (Model.IsAdminMode)
                         {
@@ -162,7 +127,7 @@
                                     <input name="y" type="number" min="0" class="form-control form-control-sm" value="@t.MatrixY" style="width:90px" />
                                     <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
                                 </form>
-                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('¬øEliminar este t√≠tulo?')">
+                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('øEliminar este tÌtulo?')">
                                     <input type="hidden" name="id" value="@t.Id" />
                                     <input type="hidden" name="AdminMode" value="true" />
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
@@ -175,7 +140,7 @@
                         <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
                             <input type="hidden" name="y" value="@y" />
                             <input type="hidden" name="AdminMode" value="true" />
-                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¬øEliminar esta fila? Se desplazar√°n hacia arriba las filas inferiores.');">‚úñ</button>
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('øEliminar esta fila? Se desplazar·n hacia arriba las filas inferiores.');">?</button>
                         </form>
                     }
                 </div>
@@ -190,7 +155,7 @@
                         <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
                             <input type="hidden" name="y" value="@y" />
                             <input type="hidden" name="AdminMode" value="true" />
-                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¬øEliminar esta fila? Se desplazar√°n hacia arriba las filas inferiores.');">‚úñ</button>
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('øEliminar esta fila? Se desplazar·n hacia arriba las filas inferiores.');">?</button>
                         </form>
                     }
                     @if (Model.ProductMatrix[y, x] != null)
@@ -199,7 +164,7 @@
                         <div class="card product-card h-100 @(Model.IsAdminMode ? "draggable" : "")" @(Model.IsAdminMode ? "draggable=\"false\"" : "") data-product-id="@p!.Id" data-x="@x" data-y="@y">
                             @if (Model.IsAdminMode)
                             {
-                                <div class="drag-area @(p.MatrixX.HasValue && p.MatrixY.HasValue ? "positioned" : "")" draggable="true">
+                                <div class="drag-area @(p.MatrixXCafe.HasValue && p.MatrixYCafe.HasValue ? "positioned" : "")" draggable="true">
                                     <div class="drag-handle">
                                         <i class="bi bi-hand-index-thumb fs-5"></i>
                                         <small>Arrastra</small>
@@ -210,32 +175,12 @@
                             <div class="card-horizontal @(Model.IsAdminMode ? "non-draggable" : "")">
                                 <div class="product-image-box">
                                     @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
-                                    else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> }
                                     else { <div class="no-image-placeholder"><i class="text-muted">?</i></div> }
                                 </div>
                                 <div class="card-body">
                                     <h5 class="card-title">@p.Name</h5>
                                     <h6 class="card-subtitle mb-2 text-muted">@((p.IsWine ? p.Winery : p.Manufacturer) ?? "")</h6>
-                                    @if (!Model.IsAdminMode)
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(p.Description)) { <p class="card-text">@p.Description</p>; }
-                                        <ul class="list-unstyled small product-details">
-                                            @if (!string.IsNullOrWhiteSpace(p.Size)) { <li><strong>Tama√±o:</strong> @p.Size</li> }
-                                            @if (p.AlcoholPercent.HasValue) { <li><strong>% Alcohol:</strong> @p.AlcoholPercent%</li> }
-                                            @if (!string.IsNullOrWhiteSpace(p.Origin)) { <li><strong>Origen:</strong> @p.Origin</li> }
-                                            @if (p.GrapeType != null) { <li><strong>Tipo de uva:</strong> @p.GrapeType.Name</li> }
-                                            <li><strong>Categor√≠a:</strong> @p.Category?.Name</li>
-                                        </ul>
-                                    }
-                                    @* Mostrar pistas en modo edici√≥n *@
-                                    @if (Model.IsAdminMode)
-                                    {
-                                        <ul class="list-unstyled small text-muted mb-1">
-                                            @if (!string.IsNullOrWhiteSpace(p.Origin)) { <li><strong>Origen:</strong> @p.Origin</li> }
-                                            @if (p.GrapeType != null) { <li><strong>Tipo de uva:</strong> @p.GrapeType.Name</li> }
-                                        </ul>
-                                    }
-                                    @if (p.Price.HasValue) { <div class="product-price text-primary fw-bold @(Model.IsAdminMode ? "" : "fs-5")">@p.Price.Value.ToString("C")</div> }
+                                    @if (p.Price.HasValue) { <div class="product-price text-primary fw-bold">@p.Price.Value.ToString("C")</div> }
                                 </div>
                             </div>
                         </div>
@@ -256,16 +201,16 @@
     <div class="d-flex justify-content-end mb-4 gap-2">
         <form method="post" asp-page-handler="InsertRow" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
             <div class="d-flex flex-column">
-                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posici√≥n</label>
+                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posiciÛn</label>
                 <input id="insertRowYBottom" name="y" type="number" min="0" class="form-control form-control-sm" value="@Model.MatrixRows" style="width:120px" />
             </div>
             <div class="d-grid">
-                <button type="submit" class="btn btn-sm btn-outline-primary">A√±adir fila</button>
+                <button type="submit" class="btn btn-sm btn-outline-primary">AÒadir fila</button>
             </div>
         </form>
         <form method="post" asp-page-handler="DeleteLastEmptyRows" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
             <div class="d-flex flex-column">
-                <label for="rowsToDelete" class="form-label mb-0 small">Borrar √∫ltimas filas vac√≠as</label>
+                <label for="rowsToDelete" class="form-label mb-0 small">Borrar ˙ltimas filas vacÌas</label>
                 <input id="rowsToDelete" name="count" type="number" min="1" class="form-control form-control-sm" value="1" style="width:120px" />
             </div>
             <div class="d-grid">
@@ -277,12 +222,11 @@
 
 @if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
 {
-    <h5>Productos sin posici√≥n asignada (@Model.UnpositionedProducts.Count):</h5>
+    <h5>Productos sin posiciÛn asignada (@Model.UnpositionedProducts.Count):</h5>
     <div class="unpositioned-products mb-4" id="unassigned-container" style="display:grid; grid-template-columns: repeat(@Model.MatrixColumns, 1fr); gap: 15px;">
         @foreach (var p in Model.UnpositionedProducts)
         {
             <div class="card product-card" data-product-id="@p.Id" data-unassigned="true">
-                @* √Årea de arrastre para productos sin posici√≥n *@
                 <div class="drag-area" draggable="true">
                     <div class="drag-handle">
                         <i class="bi bi-hand-index-thumb fs-5"></i>
@@ -297,10 +241,6 @@
                     <div class="card-body">
                         <h6 class="card-title">@p.Name</h6>
                         <small class="card-subtitle mb-2 text-muted">@((p.IsWine ? p.Winery : p.Manufacturer) ?? "")</small>
-                        <ul class="list-unstyled small text-muted mb-1">
-                            @if (!string.IsNullOrWhiteSpace(p.Origin)) { <li><strong>Origen:</strong> @p.Origin</li> }
-                            @if (p.GrapeType != null) { <li><strong>Tipo de uva:</strong> @p.GrapeType.Name</li> }
-                        </ul>
                         @if (p.Price.HasValue) { <div class="product-price text-primary fw-bold">@p.Price.Value.ToString("C")</div> }
                     </div>
                 </div>
@@ -311,11 +251,10 @@
 
 @if (Model.IsAdminMode){
   <div id="context-menu" class="context-menu d-none">
-    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vac√≠a</button>
-    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas‚Ä¶</button>
+    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacÌa</button>
+    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadasÖ</button>
   </div>
 
-  @* Modal Bootstrap para asignar coordenadas *@
   <div class="modal fade" id="assignCoordModal" tabindex="-1" aria-labelledby="assignCoordLabel" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
@@ -333,8 +272,8 @@
             <div class="mb-2">
               <label for="assignY" class="form-label small mb-1">Fila (Y)</label>
               <input type="number" class="form-control form-control-sm" id="assignY" min="0" value="0" />
-              <div class="form-text">Evita filas de t√≠tulo.</div>
-              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un t√≠tulo.</div>
+              <div class="form-text">Evita filas de tÌtulo.</div>
+              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un tÌtulo.</div>
             </div>
           </div>
           <div class="modal-footer py-2">
@@ -352,13 +291,11 @@
     <style>
         .matrix-container{max-width:1200px;margin:0 auto}.matrix-grid{display:grid;gap:15px;padding:20px;background:#f8f9fa;border-radius:8px}.matrix-grid.view-mode{background:#fff;border:1px solid #dee2e6}.matrix-cell{min-height:250px;border-radius:8px;position:relative;transition:all .3s ease;display:flex;flex-direction:column}.matrix-cell.editable{border:2px dashed #dee2e6}.matrix-cell.editable.drag-over{border-color:#0d6efd;background-color:rgba(13,110,253,.1)}.matrix-cell.reserved-empty{background:repeating-linear-gradient(45deg,#ffe5e5,#ffe5e5 8px,#ffd6d6 8px,#ffd6d6 16px);position:relative}
         .matrix-cell.reserved-empty{border:1px solid #ced4da}
-        .matrix-cell.reserved-empty::after{content:"VAC√çA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
+        .matrix-cell.reserved-empty::after{content:"VACÕA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
         .matrix-title-row{background:#fff;border:1px solid #ced4da;padding:8px 12px;border-radius:6px;position:relative}
-        /* Indicadores de coordenadas (estilo original) */
         .empty-cell-indicator{position:absolute;top:5px;left:5px;background:rgba(108,117,125,.1);color:#6c757d;padding:2px 5px;border-radius:3px;font-size:10px;font-family:monospace}
         .empty-cell-indicator.reserved{background:rgba(220,53,69,.15);color:#dc3545;font-weight:600}
         .position-indicator{position:absolute;top:5px;left:5px;background:rgba(40,167,69,.8);color:#fff;padding:2px 5px;border-radius:3px;font-size:10px;font-family:monospace;z-index:5}
-        /* Unificar apariencia de celdas vac√≠as con tarjetas: fondo y borde, sin afectar a reservadas */
         .matrix-cell:not(.reserved-empty):has(>.empty-cell-indicator){background:#fff;border:1px solid #ced4da}
         .drag-area{position:absolute;top:0;right:0;width:60px;height:60px;background:linear-gradient(135deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.6) 100%);border-radius:0 .375rem 0 15px;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:20;transition:all .3s ease}.drag-area.positioned{background:linear-gradient(135deg,rgba(40,167,69,.8) 0%,rgba(40,167,69,.6) 100%)}.drag-area.dragging{opacity:.8;transform:rotate(5deg) scale(1.1)}.drag-handle{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:8px}.drag-handle i{font-size:18px;margin-bottom:2px}.drag-handle small{font-size:8px;line-height:1;opacity:.9;font-weight:400}.non-draggable{user-select:none;pointer-events:none}.unpositioned-products{background:#fff3cd;padding:15px;border-radius:8px;border:1px solid #ffeaa7}.card-horizontal{display:flex;height:100%;overflow:hidden}
         .product-image-box{width:170px;min-width:170px;height:278px;background:#ffffff;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.375rem 0 0 .375rem;padding:10px}
@@ -368,13 +305,12 @@
         .no-image-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;color:#6c757d;font-size:.8rem;text-align:center;padding:15px}.card-body{flex:1;padding:1rem;display:flex;flex-direction:column;justify-content:space-between}.admin-mode .card-body{padding:.75rem}.card-title{font-size:1rem;margin-bottom:.5rem;line-height:1.2}.admin-mode .card-title{font-size:.9rem}.card-subtitle{font-size:.875rem;margin-bottom:.5rem}.product-price{margin-top:auto;text-align:right}.context-menu{position:fixed;z-index:1000;background:#fff;border:1px solid #ced4da;border-radius:.25rem;box-shadow:0 4px 12px rgba(0,0,0,.15);padding:4px 0;width:220px}.context-menu .dropdown-item{width:100%;text-align:left;padding:6px 12px;background:none;border:none;font-size:14px}.context-menu .dropdown-item:hover{background:#0d6efd;color:#fff;cursor:pointer}
         .delete-row-form{position:absolute;top:4px;right:4px;z-index:30}
         .delete-row-btn{padding:2px 8px;line-height:1}
-        /* Hacer que la tarjeta sea contenedor posicionado para overlay de arrastre */
         .product-card{position:relative}
     </style>
 }
 
 @section Scripts {
-    <script>
+<script>
  document.addEventListener('DOMContentLoaded', function(){
   if(!@Model.IsAdminMode.ToString().ToLower()) return;
   const matrixRows=@Model.MatrixRows; const matrixColumns=@Model.MatrixColumns; const allowedRows=@Model.MaxAllowedRows;
@@ -386,7 +322,6 @@
   const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null; let contextIsUnassigned=false;
   let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
 
-  // Modal asignaci√≥n coordenadas
   const assignModalEl=document.getElementById('assignCoordModal');
   const assignProductId=document.getElementById('assignProductId');
   const assignX=document.getElementById('assignX');
@@ -416,26 +351,24 @@
   assignY?.addEventListener('input', validateAssignForm);
 
   assignForm?.addEventListener('submit', async function(e){ e.preventDefault(); const productId=assignProductId.value; const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
-    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no v√°lidos'); return; }
+    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no v·lidos'); return; }
     if(y<0 || y>=allowedRows){ alert('Fila fuera de rango'); return; }
     if(x<0 || x>=matrixColumns){ alert('Columna fuera de rango'); return; }
-    if(reservedRows.has(y)) { alert('La fila indicada est√° reservada por un t√≠tulo'); return; }
+    if(reservedRows.has(y)) { alert('La fila indicada est· reservada por un tÌtulo'); return; }
     try{
       const token=document.querySelector('input[name="__RequestVerificationToken"]').value;
       const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token);
-      const resp=await fetch('/Catalog?handler=PlaceUnassigned',{method:'POST',body:fd});
+      const resp=await fetch('/Cafe?handler=PlaceUnassigned',{method:'POST',body:fd});
       if(resp.ok){ closeAssignModal(); location.reload(); } else { alert('Error: '+await resp.text()); }
     }catch(err){ console.error(err); alert('Error al asignar coordenadas'); }
   });
 
-  // Colapsar secciones (modo edici√≥n)
   const sectionRows=[...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b)=>parseInt(a.dataset.y)-parseInt(b.dataset.y));
   const toggleButtons=[...document.querySelectorAll('.toggle-section')];
   function getSectionRange(row){ const yStart=parseInt(row.dataset.y); const idx=sectionRows.indexOf(row); const next= idx>=0 && idx+1<sectionRows.length ? sectionRows[idx+1] : null; const yEnd = next ? (parseInt(next.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd}; }
   function setSectionCollapsed(row, collapsed){ const icon=row.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-up', !collapsed); icon.classList.toggle('bi-chevron-down', collapsed); } const {yStart,yEnd}=getSectionRange(row); allMatrixCells.forEach(c=>{ const y=parseInt(c.dataset.y); if(!Number.isNaN(y) && y>yStart && y<=yEnd){ c.classList.toggle('hidden-by-section', collapsed); }}); }
   toggleButtons.forEach(btn=>{ btn.addEventListener('click', function(){ const row=this.closest('.section-row'); const collapsed=row.classList.toggle('section-collapsed'); setSectionCollapsed(row, collapsed); }); });
 
-  // Drag de productos
   dragAreas.forEach(dragArea=>{ const productCard=dragArea.closest('.card'); const productId=productCard.dataset.productId;
     dragArea.addEventListener('dragstart',function(e){ e.stopPropagation(); this.classList.add('dragging'); productCard.classList.add('being-dragged'); e.dataTransfer.setData('text/plain', productId); e.dataTransfer.effectAllowed='move'; });
     dragArea.addEventListener('dragend',function(){ this.classList.remove('dragging'); productCard.classList.remove('being-dragged'); dropCells.forEach(c=>c.classList.remove('drag-over')); stopAutoScroll(); });
@@ -456,12 +389,10 @@
   document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); const isUnassigned=card && card.dataset.unassigned === 'true'; if(card && (card.dataset.productId || isUnassigned)){
       e.preventDefault(); contextTargetCard=card; contextIsUnassigned=!!isUnassigned;
       if(isUnassigned){
-        // Abrir modal de asignaci√≥n
         openAssignModal(card.dataset.productId);
         if(contextMenu) contextMenu.classList.add('d-none');
         return;
       }
-      // Para tarjetas posicionadas, mostrar el men√∫ contextual existente (vaciar celda)
       const btnVaciar=document.getElementById('btnVaciarCelda'); const btnAsignar=document.getElementById('btnAsignarCoordenadas');
       if(btnAsignar){ btnAsignar.classList.add('d-none'); }
       if(btnVaciar){ btnVaciar.classList.remove('d-none'); }
@@ -470,11 +401,10 @@
   });
   document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
-  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¬øReservar esta celda como vac√≠a?')) return; await vaciarCelda(productId,x,y); }); }
-  // El bot√≥n Asignar mediante prompts ya no se usa; sustituido por modal
+  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('øReservar esta celda como vacÌa?')) return; await vaciarCelda(productId,x,y); }); }
 
-  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posici√≥n'); }}
-  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name=\"__RequestVerificationToken\"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Catalog?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
+  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Cafe?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posiciÛn'); }}
+  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Cafe?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
  });
-    </script>
+</script>
 }
