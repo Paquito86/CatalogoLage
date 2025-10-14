@@ -1,15 +1,15 @@
-@page
+Ôªø@page
 @model CatalogoLage.Pages.Destilados.IndexModel
 @{
     ViewData["Title"] = "Destilados";
 }
-<h1>Cat·logo de Destilados</h1>
+<h1>Cat√°logo de Destilados</h1>
 
 @if (User.IsInRole("Admin"))
 {
     <div class="mb-3">
         <form method="get" class="d-inline">
-            @* Preservar par·metros de b˙squeda *@
+            @* Preservar par√°metros de b√∫squeda *@
             @if (!string.IsNullOrEmpty(Model.Query)) { <input type="hidden" name="Query" value="@Model.Query" /> }
             @if (Model.CategoryId.HasValue) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
             @if (!string.IsNullOrEmpty(Model.Winery)) { <input type="hidden" name="Winery" value="@Model.Winery" /> }
@@ -19,18 +19,18 @@
             @if (Model.AdminMode)
             {
                 <input type="hidden" name="AdminMode" value="false" />
-                <button type="submit" class="btn btn-secondary">Salir del modo ediciÛn</button>
+                <button type="submit" class="btn btn-secondary">Salir del modo edici√≥n</button>
             }
             else
             {
                 <input type="hidden" name="AdminMode" value="true" />
-                <button type="submit" class="btn btn-warning">Modo ediciÛn de matriz</button>
+                <button type="submit" class="btn btn-warning">Modo edici√≥n de matriz</button>
             }
         </form>
     </div>
 }
 
-@* Token antifalsificaciÛn *@
+@* Token antifalsificaci√≥n *@
 @if (Model.IsAdminMode)
 {
     <form style="display: none;">
@@ -41,22 +41,22 @@
 @if (Model.IsAdminMode)
 {
     <div class="alert alert-info mb-3">
-        <strong>Modo ediciÛn:</strong> Arrastra tarjetas. Usa el formulario inferior para crear tÌtulos. Cada tÌtulo ocupa una fila completa.
+        <strong>Modo edici√≥n:</strong> Arrastra tarjetas. Usa el formulario inferior para crear t√≠tulos. Cada t√≠tulo ocupa una fila completa.
     </div>
 
     <div class="mb-3 p-2 border rounded bg-light">
         <form method="post" asp-page-handler="CreateTitle" class="row g-2 align-items-end">
             <input type="hidden" name="AdminMode" value="true" />
             <div class="col-sm-6 col-md-5">
-                <label class="form-label mb-0 small" for="newTitleText">Nuevo tÌtulo</label>
-                <input id="newTitleText" name="text" class="form-control form-control-sm" placeholder="Texto del tÌtulo" required />
+                <label class="form-label mb-0 small" for="newTitleText">Nuevo t√≠tulo</label>
+                <input id="newTitleText" name="text" class="form-control form-control-sm" placeholder="Texto del t√≠tulo" required />
             </div>
             <div class="col-sm-3 col-md-2">
                 <label class="form-label mb-0 small" for="newTitleY">Fila</label>
                 <input id="newTitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
             </div>
             <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear tÌtulo</button>
+                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear t√≠tulo</button>
             </div>
         </form>
     </div>
@@ -65,11 +65,11 @@
         <form method="post" asp-page-handler="InsertRow" class="row g-2 align-items-end" id="formInsertRow">
             <input type="hidden" name="AdminMode" value="true" />
             <div class="col-sm-6 col-md-5">
-                <label class="form-label mb-0 small" for="insertRowY">Insertar fila en posiciÛn</label>
+                <label class="form-label mb-0 small" for="insertRowY">Insertar fila en posici√≥n</label>
                 <input type="number" class="form-control form-control-sm" id="insertRowY" name="y" min="0" value="@Model.MatrixRows" />
             </div>
             <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">AÒadir fila</button>
+                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">A√±adir fila</button>
             </div>
         </form>
     </div>
@@ -79,10 +79,10 @@
     <div class="row g-2 align-items-end">
         <div class="col-md-6">
             <label for="q" class="form-label">Buscar</label>
-            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripciÛn, fabricante o bodega" />
+            <input id="q" name="Query" value="@Model.Query" class="form-control" placeholder="Nombre, descripci√≥n, fabricante o bodega" />
         </div>
         <div class="col-md-3">
-            <label for="categoryId" class="form-label">CategorÌa</label>
+            <label for="categoryId" class="form-label">Categor√≠a</label>
             <select id="categoryId" name="categoryId" class="form-select">
                 <option value="">-- Todas --</option>
                 @foreach (var c in Model.Categories)
@@ -113,7 +113,7 @@
                         <div class="d-flex align-items-center gap-2">
                             @if (Model.IsAdminMode)
                             {
-                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir secciÛn">
+                                <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir secci√≥n">
                                     <i class="bi bi-chevron-up"></i>
                                 </button>
                             }
@@ -129,7 +129,7 @@
                                     <input name="y" type="number" min="0" class="form-control form-control-sm" value="@t.MatrixY" style="width:90px" />
                                     <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
                                 </form>
-                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('øEliminar este tÌtulo?')">
+                                <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('¬øEliminar este t√≠tulo?')">
                                     <input type="hidden" name="id" value="@t.Id" />
                                     <input type="hidden" name="AdminMode" value="true" />
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
@@ -142,7 +142,7 @@
                         <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
                             <input type="hidden" name="y" value="@y" />
                             <input type="hidden" name="AdminMode" value="true" />
-                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('øEliminar esta fila? Se desplazar·n hacia arriba las filas inferiores.');">?</button>
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¬øEliminar esta fila? Se desplazar√°n hacia arriba las filas inferiores.');">?</button>
                         </form>
                     }
                 </div>
@@ -157,7 +157,7 @@
                         <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
                             <input type="hidden" name="y" value="@y" />
                             <input type="hidden" name="AdminMode" value="true" />
-                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('øEliminar esta fila? Se desplazar·n hacia arriba las filas inferiores.');">?</button>
+                            <button type="submit" class="btn btn-sm btn-danger delete-row-btn" title="Eliminar fila" onclick="return confirm('¬øEliminar esta fila? Se desplazar√°n hacia arriba las filas inferiores.');">?</button>
                         </form>
                     }
                     @if (Model.ProductMatrix[y, x] != null)
@@ -203,16 +203,16 @@
     <div class="d-flex justify-content-end mb-4 gap-2">
         <form method="post" asp-page-handler="InsertRow" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
             <div class="d-flex flex-column">
-                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posiciÛn</label>
+                <label for="insertRowYBottom" class="form-label mb-0 small">Insertar fila en posici√≥n</label>
                 <input id="insertRowYBottom" name="y" type="number" min="0" class="form-control form-control-sm" value="@Model.MatrixRows" style="width:120px" />
             </div>
             <div class="d-grid">
-                <button type="submit" class="btn btn-sm btn-outline-primary">AÒadir fila</button>
+                <button type="submit" class="btn btn-sm btn-outline-primary">A√±adir fila</button>
             </div>
         </form>
         <form method="post" asp-page-handler="DeleteLastEmptyRows" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
             <div class="d-flex flex-column">
-                <label for="rowsToDelete" class="form-label mb-0 small">Borrar ˙ltimas filas vacÌas</label>
+                <label for="rowsToDelete" class="form-label mb-0 small">Borrar √∫ltimas filas vac√≠as</label>
                 <input id="rowsToDelete" name="count" type="number" min="1" class="form-control form-control-sm" value="1" style="width:120px" />
             </div>
             <div class="d-grid">
@@ -224,12 +224,12 @@
 
 @if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
 {
-    <h5>Productos sin posiciÛn asignada (@Model.UnpositionedProducts.Count):</h5>
+    <h5>Productos sin posici√≥n asignada (@Model.UnpositionedProducts.Count):</h5>
     <div class="unpositioned-products mb-4" id="unassigned-container" style="display:grid; grid-template-columns: repeat(@Model.MatrixColumns, 1fr); gap: 15px;">
         @foreach (var p in Model.UnpositionedProducts)
         {
             <div class="card product-card" data-product-id="@p.Id" data-unassigned="true">
-                @* ¡rea de arrastre para productos sin posiciÛn *@
+                @* √Årea de arrastre para productos sin posici√≥n *@
                 <div class="drag-area" draggable="true">
                     <div class="drag-handle">
                         <i class="bi bi-hand-index-thumb fs-5"></i>
@@ -258,8 +258,8 @@
 
 @if (Model.IsAdminMode){
   <div id="context-menu" class="context-menu d-none">
-    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacÌa</button>
-    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadasÖ</button>
+    <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vac√≠a</button>
+    <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas‚Ä¶</button>
   </div>
 
   @* Modal Bootstrap para asignar coordenadas *@
@@ -280,8 +280,8 @@
             <div class="mb-2">
               <label for="assignY" class="form-label small mb-1">Fila (Y)</label>
               <input type="number" class="form-control form-control-sm" id="assignY" min="0" value="0" />
-              <div class="form-text">Evita filas de tÌtulo.</div>
-              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un tÌtulo.</div>
+              <div class="form-text">Evita filas de t√≠tulo.</div>
+              <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un t√≠tulo.</div>
             </div>
           </div>
           <div class="modal-footer py-2">
@@ -299,7 +299,7 @@
     <style>
         .matrix-container{max-width:1200px;margin:0 auto}.matrix-grid{display:grid;gap:15px;padding:20px;background:#f8f9fa;border-radius:8px}.matrix-grid.view-mode{background:#fff;border:1px solid #dee2e6}.matrix-cell{min-height:250px;border-radius:8px;position:relative;transition:all .3s ease;display:flex;flex-direction:column}.matrix-cell.editable{border:2px dashed #dee2e6}.matrix-cell.editable.drag-over{border-color:#0d6efd;background-color:rgba(13,110,253,.1)}.matrix-cell.reserved-empty{background:repeating-linear-gradient(45deg,#ffe5e5,#ffe5e5 8px,#ffd6d6 8px,#ffd6d6 16px);position:relative}
         .matrix-cell.reserved-empty{border:1px solid #ced4da}
-        .matrix-cell.reserved-empty::after{content:"VACÕA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
+        .matrix-cell.reserved-empty::after{content:"VAC√çA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
         .matrix-title-row{background:#fff;border:1px solid #ced4da;padding:8px 12px;border-radius:6px;position:relative}
         .empty-cell-indicator{position:absolute;top:5px;left:5px;background:rgba(108,117,125,.1);color:#6c757d;padding:2px 5px;border-radius:3px;font-size:10px;font-family:monospace}
         .empty-cell-indicator.reserved{background:rgba(220,53,69,.15);color:#dc3545;font-weight:600}
@@ -361,10 +361,10 @@
   assignY?.addEventListener('input', validateAssignForm);
 
   assignForm?.addEventListener('submit', async function(e){ e.preventDefault(); const productId=assignProductId.value; const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
-    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no v·lidos'); return; }
+    if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no v√°lidos'); return; }
     if(y<0 || y>=allowedRows){ alert('Fila fuera de rango'); return; }
     if(x<0 || x>=matrixColumns){ alert('Columna fuera de rango'); return; }
-    if(reservedRows.has(y)) { alert('La fila indicada est· reservada por un tÌtulo'); return; }
+    if(reservedRows.has(y)) { alert('La fila indicada est√° reservada por un t√≠tulo'); return; }
     try{
       const token=document.querySelector('input[name="__RequestVerificationToken"]').value;
       const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token);
@@ -411,9 +411,9 @@
   });
   document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
-  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('øReservar esta celda como vacÌa?')) return; await vaciarCelda(productId,x,y); }); }
+  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¬øReservar esta celda como vac√≠a?')) return; await vaciarCelda(productId,x,y); }); }
 
-  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posiciÛn'); }}
+  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posici√≥n'); }}
   async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
  });
 </script>
