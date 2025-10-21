@@ -1,4 +1,4 @@
-@page
+Ôªø@page
 @model CatalogoLage.Pages.Admin.Otros.IndexModel
 @{
     ViewData["Title"] = "Otros";
@@ -13,8 +13,8 @@ else
 {
     <div class="card">
         <div class="card-body">
-            <h5 class="card-title">Migrar im·genes a Base64</h5>
-            <p class="card-text">1) Descarga el JSON de copia de seguridad con todos los enlaces actuales. 2) Confirma que lo has guardado y su contenido es v·lido. 3) Ejecuta la migraciÛn.</p>
+            <h5 class="card-title">Migrar im√°genes a Base64</h5>
+            <p class="card-text">1) Descarga el JSON de copia de seguridad con todos los enlaces actuales. 2) Confirma que lo has guardado y su contenido es v√°lido. 3) Ejecuta la migraci√≥n.</p>
 
             <form method="post" asp-page-handler="ExportLinks" class="d-inline">
                 <button disabled type="submit" class="btn btn-outline-secondary">Descargar JSON de enlaces</button>
@@ -29,13 +29,13 @@ else
                 <form method="post" asp-page-handler="RunMigration" class="mt-3">
                     <input type="hidden" name="BackupReady" value="true" />
                     <input type="hidden" name="CanRunMigration" value="true" />
-                    <button disabled type="submit" class="btn btn-primary">Ejecutar migraciÛn</button>
+                    <button disabled type="submit" class="btn btn-primary">Ejecutar migraci√≥n</button>
                 </form>
             }
             else
             {
                 <div class="alert alert-info mt-3">
-                    La migraciÛn permanecer· bloqueada hasta que confirmes que has guardado y validado el JSON.
+                    La migraci√≥n permanecer√° bloqueada hasta que confirmes que has guardado y validado el JSON.
                 </div>
             }
 
