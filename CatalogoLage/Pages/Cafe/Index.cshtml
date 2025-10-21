@@ -53,8 +53,18 @@
                 <label class="form-label mb-0 small" for="newTitleY">Fila</label>
                 <input id="newTitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
             </div>
-            <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-primary mt-3 mt-sm-0">Crear título</button>
+            <div class="col-sm-3 col-md-3">
+                <label class="form-label mb-0 small">Nivel</label>
+                <div class="btn-group d-flex" role="group" aria-label="Nivel de título">
+                    <input type="radio" class="btn-check" name="level" id="levelH1" autocomplete="off" value="1">
+                    <label class="btn btn-outline-secondary btn-sm" for="levelH1">h1</label>
+                    <input type="radio" class="btn-check" name="level" id="levelH2" autocomplete="off" value="2" checked>
+                    <label class="btn btn-outline-secondary btn-sm" for="levelH2">h2</label>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-2 d-grid">
+                <label class="form-label mb-0 small d-none d-md-block">&nbsp;</label>
+                <button type="submit" class="btn btn-sm btn-primary">Crear título</button>
             </div>
         </form>
     </div>
@@ -67,7 +77,26 @@
                 <input type="number" class="form-control form-control-sm" id="insertRowY" name="y" min="0" value="@Model.MatrixRows" />
             </div>
             <div class="col-sm-3 col-md-2 d-grid">
-                <button type="submit" class="btn btn-sm btn-outline-primary mt-3 mt-sm-0">Añadir fila</button>
+                <label class="form-label mb-0 small d-none d-md-block">&nbsp;</label>
+                <button type="submit" class="btn btn-sm btn-outline-primary mt-0">Añadir fila</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-3 p-2 border rounded bg-light">
+        <form method="post" asp-page-handler="CreateSubtitulo" class="row g-2 align-items-end">
+            <input type="hidden" name="AdminMode" value="true" />
+            <div class="col-sm-6 col-md-7">
+                <label class="form-label mb-0 small" for="newSubtitleText">Nuevo subtítulo</label>
+                <input id="newSubtitleText" name="text" class="form-control form-control-sm" placeholder="Texto del subtítulo" required />
+            </div>
+            <div class="col-sm-3 col-md-3">
+                <label class="form-label mb-0 small" for="newSubtitleY">Fila</label>
+                <input id="newSubtitleY" name="y" type="number" min="0" class="form-control form-control-sm" value="0" />
+            </div>
+            <div class="col-sm-12 col-md-2 d-grid">
+                <label class="form-label mb-0 small d-none d-md-block">&nbsp;</label>
+                <button type="submit" class="btn btn-sm btn-primary">Crear subtítulo</button>
             </div>
         </form>
     </div>
@@ -100,13 +129,14 @@
 }
 
 <div class="matrix-container mb-4">
-    <div class="matrix-grid @(Model.IsAdminMode ? "admin-mode" : "view-mode")" style="grid-template-columns: repeat(@Model.MatrixColumns, 1fr);">
+    <div class="matrix-grid @(Model.IsAdminMode ? "admin-mode" : "view-mode") @(Model.IsFiltered ? "filtered-mode" : "")" style="grid-template-columns: repeat(@Model.MatrixColumns, 1fr);">
         @for (int y = 0; y < Model.MatrixRows; y++)
         {
             if (titleRows.ContainsKey(y))
             {
                 var t = titleRows[y];
-                <div class="matrix-title-row section-row" data-y="@y" style="grid-column: 1 / span @Model.MatrixColumns; position: relative;">
+                bool showTitle = !Model.IsFiltered || Model.TitleRowsWithProducts.Contains(y);
+                <div class="matrix-title-row section-row @(showTitle ? string.Empty : "no-products")" data-y="@y" style="grid-column: 1 / span @Model.MatrixColumns; position: relative;">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
                             @if (Model.IsAdminMode)
@@ -115,17 +145,31 @@
                                     <i class="bi bi-chevron-up"></i>
                                 </button>
                             }
-                            <h4 class="m-0">@t.Text</h4>
+                            @if (t.Level == 1) { <h3 class="m-0 title-h1">@t.Text @if(Model.IsAdminMode){<small class="text-muted ms-2">Fila @t.MatrixY</small>}</h3> } else { <h4 class="m-0">@t.Text @if(Model.IsAdminMode){<small class="text-muted ms-2">Fila @t.MatrixY</small>}</h4> }
                         </div>
                         @if (Model.IsAdminMode)
                         {
                             <div class="d-flex align-items-center gap-2">
-                                <form method="post" asp-page-handler="UpdateTitle" class="d-flex align-items-end gap-1">
-                                    <input type="hidden" name="id" value="@t.Id" />
-                                    <input type="hidden" name="AdminMode" value="true" />
-                                    <input name="text" class="form-control form-control-sm" value="@t.Text" style="max-width:220px" />
-                                    <input name="y" type="number" min="0" class="form-control form-control-sm" value="@t.MatrixY" style="width:90px" />
-                                    <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
+                                <form method="post" asp-page-handler="UpdateTitle" class="row g-1 align-items-end">
+                                    <div class="col-auto">
+                                        <input type="hidden" name="id" value="@t.Id" />
+                                        <input type="hidden" name="AdminMode" value="true" />
+                                        <input name="text" class="form-control form-control-sm" value="@t.Text" style="max-width:220px" />
+                                    </div>
+                                    <div class="col-auto">
+                                        <input name="y" type="number" min="0" class="form-control form-control-sm" value="@t.MatrixY" style="width:90px" />
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="btn-group" role="group" aria-label="Nivel">
+                                            <input type="radio" class="btn-check" name="level" id="levelH1_@t.Id" value="1" autocomplete="off" @(t.Level==1?"checked":"")>
+                                            <label class="btn btn-outline-secondary btn-sm" for="levelH1_@t.Id">h1</label>
+                                            <input type="radio" class="btn-check" name="level" id="levelH2_@t.Id" value="2" autocomplete="off" @(t.Level!=1?"checked":"")>
+                                            <label class="btn btn-outline-secondary btn-sm" for="levelH2_@t.Id">h2</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Guardar</button>
+                                    </div>
                                 </form>
                                 <form method="post" asp-page-handler="DeleteTitle" onsubmit="return confirm('¿Eliminar este título?')">
                                     <input type="hidden" name="id" value="@t.Id" />
@@ -149,7 +193,8 @@
             for (int x = 0; x < Model.MatrixColumns; x++)
             {
                 bool isEmptyReserved = Model.EmptyCells.Contains((x,y));
-                <div class="matrix-cell @(Model.IsAdminMode ? "editable" : "") @(isEmptyReserved && Model.IsAdminMode ? "reserved-empty" : "")" data-x="@x" data-y="@y" style="position: relative;">
+                bool isEmptyCell = Model.ProductMatrix[y, x] == null;
+                <div class="matrix-cell @(Model.IsAdminMode ? "editable" : "") @(isEmptyReserved && Model.IsAdminMode ? "reserved-empty" : "") @(Model.IsFiltered && isEmptyCell ? "empty" : "")" data-x="@x" data-y="@y" style="position: relative;">
                     @if (x == Model.MatrixColumns - 1 && Model.IsAdminMode)
                     {
                         <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
@@ -205,6 +250,7 @@
                 <input id="insertRowYBottom" name="y" type="number" min="0" class="form-control form-control-sm" value="@Model.MatrixRows" style="width:120px" />
             </div>
             <div class="d-grid">
+                <label class="form-label mb-0 small d-none d-md-block">&nbsp;</label>
                 <button type="submit" class="btn btn-sm btn-outline-primary">Añadir fila</button>
             </div>
         </form>
@@ -214,6 +260,7 @@
                 <input id="rowsToDelete" name="count" type="number" min="1" class="form-control form-control-sm" value="1" style="width:120px" />
             </div>
             <div class="d-grid">
+                <label class="form-label mb-0 small d-none d-md-block">&nbsp;</label>
                 <button type="submit" class="btn btn-sm btn-outline-danger">Borrar</button>
             </div>
         </form>
@@ -308,6 +355,11 @@
         .product-card{position:relative}
         /* Ocultar celdas colapsadas */
         .hidden-by-section { display: none; }
+        /* H1 de catálogo (Level==1) en negrita */
+        .matrix-title-row .title-h1 { font-weight: 700; }
+        /* En modo filtrado ocultar celdas vacías y títulos sin productos */
+        .matrix-grid.filtered-mode .matrix-cell.empty { display:none; }
+        .matrix-grid.filtered-mode .matrix-title-row.no-products { display:none; }
     </style>
 }
 

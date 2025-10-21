@@ -35,6 +35,9 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)] public int? GrapeTypeId { get; set; }
     [BindProperty(SupportsGet = true)] public bool AdminMode { get; set; }
 
+    public bool IsFiltered { get; set; }
+    public HashSet<int> TitleRowsWithProducts { get; set; } = new();
+
     private static IQueryable<Product> CafeOnly(IQueryable<Product> q)
         => q.Where(p => p.Category != null && p.Category.SortOrder == 3);
 
@@ -81,6 +84,9 @@ public class IndexModel : PageModel
         IsAdminMode = AdminMode && User.IsInRole("Admin");
         OrganizeProductsInMatrix();
         MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
+
+        IsFiltered = !string.IsNullOrWhiteSpace(Query) || CategoryId.HasValue || !string.IsNullOrWhiteSpace(Winery) || !string.IsNullOrWhiteSpace(Origin) || GrapeTypeId.HasValue;
+        ComputeTitleRowsWithProducts();
     }
 
     private async Task<int> ComputeMaxAllowedRowsAsync()
@@ -115,14 +121,38 @@ public class IndexModel : PageModel
         }
     }
 
+    private void ComputeTitleRowsWithProducts()
+    {
+        TitleRowsWithProducts = new HashSet<int>();
+        if (TitleRows.Count == 0 || MatrixRows <= 0) return;
+        var sorted = TitleRows.OrderBy(t => t.MatrixY).ToList();
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            var t = sorted[i];
+            int yStart = t.MatrixY + 1;
+            int yEnd = (i + 1 < sorted.Count ? sorted[i + 1].MatrixY - 1 : MatrixRows - 1);
+            yStart = Math.Max(yStart, 0);
+            yEnd = Math.Min(yEnd, MatrixRows - 1);
+            bool hasProduct = false;
+            for (int y = yStart; y <= yEnd && !hasProduct; y++)
+            {
+                for (int x = 0; x < MatrixColumns; x++)
+                {
+                    if (ProductMatrix[y, x] != null) { hasProduct = true; break; }
+                }
+            }
+            if (hasProduct) TitleRowsWithProducts.Add(t.MatrixY);
+        }
+    }
+
     public async Task<IActionResult> OnPostUpdatePositionAsync(int productId, int x, int y)
     {
         if (!User.IsInRole("Admin")) return Forbid();
         var product = await CafeOnly(_ctx.Products.Include(p=>p.Category)).FirstOrDefaultAsync(p=>p.Id==productId);
         if (product == null) return NotFound();
-        var reservedRows = await _ctx.CatalogCafeTitleRows.Select(t => t.MatrixY).ToListAsync(); if (reservedRows.Contains(y)) return BadRequest("No se puede colocar un producto en una fila de título");
+        var reservedRows = await _ctx.CatalogCafeTitleRows.Select(t => t.MatrixY).ToListAsync(); if (reservedRows.Contains(y)) return BadRequest("No se puede colocar un producto en una fila de t?tulo");
         var emptyCell = await _ctx.CatalogCafeEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y); if (emptyCell != null) _ctx.CatalogCafeEmptyCells.Remove(emptyCell);
-        int maxRows = await ComputeMaxAllowedRowsAsync(); if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows) return BadRequest("Coordenadas inválidas");
+        int maxRows = await ComputeMaxAllowedRowsAsync(); if (x < 0 || x >= MatrixColumns || y < 0 || y >= maxRows) return BadRequest("Coordenadas inv?lidas");
         var existingProduct = await CafeOnly(_ctx.Products.Include(p=>p.Category)).FirstOrDefaultAsync(p => p.MatrixXCafe == x && p.MatrixYCafe == y && p.Id != productId); if (existingProduct != null) { existingProduct.MatrixXCafe = product.MatrixXCafe; existingProduct.MatrixYCafe = product.MatrixYCafe; }
         product.MatrixXCafe = x; product.MatrixYCafe = y; await _ctx.SaveChangesAsync(); return new JsonResult(new { success = true });
     }
@@ -143,11 +173,11 @@ public class IndexModel : PageModel
         if (x < 0 || x >= MatrixColumns) return BadRequest("Columna fuera de rango");
         if (y < 0 || y >= maxRows) return BadRequest("Fila fuera de rango");
         bool isTitleRow = await _ctx.CatalogCafeTitleRows.AnyAsync(t => t.MatrixY == y);
-        if (isTitleRow) return BadRequest("La fila indicada está reservada por un título");
+        if (isTitleRow) return BadRequest("La fila indicada est? reservada por un t?tulo");
         var emptyCell = await _ctx.CatalogCafeEmptyCells.FirstOrDefaultAsync(c => c.X == x && c.Y == y);
         if (emptyCell != null) _ctx.CatalogCafeEmptyCells.Remove(emptyCell);
         bool occupied = await CafeOnly(_ctx.Products.Include(p=>p.Category)).AnyAsync(p => p.MatrixXCafe == x && p.MatrixYCafe == y);
-        if (occupied) return BadRequest("La celda ya está ocupada");
+        if (occupied) return BadRequest("La celda ya est? ocupada");
         product.MatrixXCafe = x; product.MatrixYCafe = y;
         await _ctx.SaveChangesAsync();
         return new JsonResult(new { success = true });
@@ -182,35 +212,37 @@ public class IndexModel : PageModel
         if (deleted > 0) await _ctx.SaveChangesAsync(); return RedirectToPage(new { AdminMode = true });
     }
 
-    public async Task<IActionResult> OnPostCreateTitleAsync(string text, int y)
+    public async Task<IActionResult> OnPostCreateTitleAsync(string text, int y, int level = 2)
     {
         if (!User.IsInRole("Admin")) return Forbid();
         text = (text ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(text)) return BadRequest("El título es obligatorio");
+        if (string.IsNullOrWhiteSpace(text)) return BadRequest("El t?tulo es obligatorio");
         if (y < 0) y = 0;
+        if (level != 1 && level != 2) level = 2;
         var exists = await _ctx.CatalogCafeTitleRows.AnyAsync(t => t.MatrixY == y);
-        if (exists) return BadRequest("Ya existe un título en esa fila");
+        if (exists) return BadRequest("Ya existe un t?tulo en esa fila");
         await MoveProductsOutOfRowAsync(y);
-        _ctx.CatalogCafeTitleRows.Add(new CatalogCafeTitleRow { Text = text, MatrixY = y });
+        _ctx.CatalogCafeTitleRows.Add(new CatalogCafeTitleRow { Text = text, MatrixY = y, Level = level });
         await _ctx.SaveChangesAsync();
         return RedirectToPage(new { AdminMode = true });
     }
 
-    public async Task<IActionResult> OnPostUpdateTitleAsync(int id, string text, int y)
+    public async Task<IActionResult> OnPostUpdateTitleAsync(int id, string text, int y, int level = 2)
     {
         if (!User.IsInRole("Admin")) return Forbid();
         var title = await _ctx.CatalogCafeTitleRows.FindAsync(id);
         if (title == null) return NotFound();
         text = (text ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(text)) return BadRequest("El título es obligatorio");
+        if (string.IsNullOrWhiteSpace(text)) return BadRequest("El t?tulo es obligatorio");
         if (y < 0) y = 0;
+        if (level != 1 && level != 2) level = 2;
         if (y != title.MatrixY)
         {
             var exists = await _ctx.CatalogCafeTitleRows.AnyAsync(t => t.MatrixY == y && t.Id != id);
-            if (exists) return BadRequest("Ya existe un título en la fila destino");
+            if (exists) return BadRequest("Ya existe un t?tulo en la fila destino");
             await MoveProductsOutOfRowAsync(y);
         }
-        title.Text = text; title.MatrixY = y;
+        title.Text = text; title.MatrixY = y; title.Level = level;
         await _ctx.SaveChangesAsync();
         return RedirectToPage(new { AdminMode = true });
     }
