@@ -1,13 +1,84 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+ ViewData["Title"] = "Catálogo";
 }
 
-<div class="d-flex justify-content-center align-items-center min-vh-100">
-    <div class="d-flex gap-3">
-        <a asp-page="/Catalog/Index" class="btn btn-primary btn-lg">Vino</a>
-        <a asp-page="/Destilados/Index" class="btn btn-secondary btn-lg">Destilados</a>
-        <a asp-page="/Cafe/Index" class="btn btn-dark btn-lg">Café e Infusiones</a>
-    </div>
-</div>
+<section class="hero d-flex align-items-center text-dark">
+ <div class="container-fluid text-start">
+ <h1 class="display-4 fw-bold mb-5">Catálogo Almacenes Lage</h1>
+ <p class="lead mb-4">Explora nuestras selecciones de vino, destilados, café e infusiones.</p>
+ <div class="hero-actions d-flex flex-wrap gap-2">
+ <a asp-page="/Catalog/Index" class="btn btn-outline-dark btn-lg">Vinos</a>
+ <a asp-page="/Destilados/Index" class="btn btn-outline-dark btn-lg">Destilados</a>
+ <a asp-page="/Cafe/Index" class="btn btn-outline-dark btn-lg">Café e Infusiones</a>
+ </div>
+ </div>
+</section>
+
+<section class="categories container-fluid py-5 px-4 px-md-5">
+ <div class="row g-4">
+ <div class="col-12 col-md-4">
+ <a asp-page="/Catalog/Index" class="category-card wine" aria-label="Ir al catálogo de vinos">
+ <div class="card-overlay"></div>
+ <div class="card-content">
+ <h2>Vino</h2>
+ <p>Blancos, tintos, rosados, espumosos y dulces.</p>
+ </div>
+ </a>
+ </div>
+ <div class="col-12 col-md-4">
+ <a asp-page="/Destilados/Index" class="category-card spirits" aria-label="Ir al catálogo de destilados">
+ <div class="card-overlay"></div>
+ <div class="card-content">
+ <h2>Destilados</h2>
+ <p>Selección de whiskies, ginebras, rones y más.</p>
+ </div>
+ </a>
+ </div>
+ <div class="col-12 col-md-4">
+ <a asp-page="/Cafe/Index" class="category-card coffee" aria-label="Ir al catálogo de café e infusiones">
+ <div class="card-overlay"></div>
+ <div class="card-content">
+ <h2>Café e Infusiones</h2>
+ <p>Variedades para todos los gustos y momentos.</p>
+ </div>
+ </a>
+ </div>
+ </div>
+</section>
+
+@section Styles {
+<style>
+/* Hero sin gradiente y con esquinas redondeadas */
+.hero {
+	min-height:50vh;
+	background: url('https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/hero.jpg') center/cover no-repeat;
+	border-radius:18px;
+	overflow: hidden;
+	/*box-shadow:016px40px rgba(0,0,0,.00000015);*/
+	margin:15px
+}
+
+/* Alinear contenido del hero según clase de texto */
+.hero .container-fluid.text-start,
+.hero .container-fluid.text-center,
+.hero .container-fluid.text-end { display:flex; flex-direction:column; }
+.hero .container-fluid.text-start { align-items:flex-start; text-align:left; }
+.hero .container-fluid.text-center { align-items:center; text-align:center; }
+.hero .container-fluid.text-end { align-items:flex-end; text-align:right; }
+
+.categories .category-card{position:relative;display:flex;align-items:center;justify-content:center;height:260px;border-radius:12px;overflow:hidden;color:#fff;text-decoration:none;text-align:center;transition:transform .2s ease, box-shadow .2s ease}
+.categories .category-card .card-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.6));transition:opacity .3s ease;z-index:1}
+.categories .category-card .card-content{position:relative;z-index:2;padding:18px20px}
+.categories .category-card h2{margin:006px;font-size:1.6rem}
+.categories .category-card p{margin:0;opacity:.92}
+.categories .category-card:hover{transform:translateY(-4px);box-shadow:012px28px rgba(0,0,0,.22)}
+.categories .category-card:hover .card-overlay{opacity:.85}
+
+/* Imágenes (distintas) */
+.categories .category-card.wine { background: url('https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/landing-vino.jpg') center/cover no-repeat }
+.categories .category-card.spirits { background: url('https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/landing-destilados.jpg') center/cover no-repeat }
+.categories .category-card.coffee { background: url('https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/landing-cafe.jpg') center/cover no-repeat }
+</style>
+}

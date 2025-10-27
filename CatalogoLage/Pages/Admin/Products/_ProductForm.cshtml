@@ -29,7 +29,7 @@
     <input asp-for="Manufacturer" class="form-control" />
     <span class="form-text">Para productos no vinos</span>
 </div>
-<div class="mb-3">
+<div class="mb-3" id="grapeTypeField">
     <label asp-for="GrapeTypeId" class="form-label">Tipo de uva (opcional)</label>
     <select asp-for="GrapeTypeId" class="form-select" asp-items="@(new SelectList(grapeTypes, nameof(CatalogoLage.Models.GrapeType.Id), nameof(CatalogoLage.Models.GrapeType.Name)))">
         <option value="">-- Sin especificar --</option>
@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const categorySelect = document.getElementById('categorySelect');
     const wineryField = document.getElementById('wineryField');
     const manufacturerField = document.getElementById('manufacturerField');
+    const grapeTypeField = document.getElementById('grapeTypeField');
     const wineCategoryNames = @Html.Raw(Json.Serialize(wineCategoryNames));
 
     function updateFields() {
@@ -85,9 +86,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isWine) {
             wineryField.style.display = 'block';
             manufacturerField.style.display = 'none';
+            grapeTypeField.style.display = 'block';
         } else {
             wineryField.style.display = 'none';
             manufacturerField.style.display = 'block';
+            grapeTypeField.style.display = 'none';
         }
     }
 

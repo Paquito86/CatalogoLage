@@ -27,7 +27,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => {
-    // Para desarrollo puedes desactivar confirmación si dificulta las pruebas
     options.SignIn.RequireConfirmedAccount = false; // Cambia a true en producción si deseas confirmación
 }).AddRoles<IdentityRole>()
   .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -37,6 +36,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CatalogViewer", p => p.RequireRole("CatalogViewer","Admin"));
     options.AddPolicy("CatalogAdmin", p => p.RequireRole("Admin"));
 });
+
+builder.Services.AddControllers();
 
 builder.Services.AddRazorPages(options =>
 {
@@ -110,6 +111,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
