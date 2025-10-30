@@ -41,7 +41,6 @@ builder.Services.AddControllers();
 
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/Catalog", "CatalogViewer");
     options.Conventions.AuthorizeFolder("/Admin", "CatalogAdmin");
 });
 
