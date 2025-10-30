@@ -33,7 +33,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("CatalogViewer", p => p.RequireRole("CatalogViewer","Admin"));
+    options.AddPolicy("CatalogViewer", p => p.RequireRole("CatalogViewer", "Admin"));
     options.AddPolicy("CatalogAdmin", p => p.RequireRole("Admin"));
 });
 
@@ -41,6 +41,12 @@ builder.Services.AddControllers();
 
 builder.Services.AddRazorPages(options =>
 {
+    // Acceso anónimo garantizado a los catálogos
+    options.Conventions.AllowAnonymousToFolder("/Catalog");
+    options.Conventions.AllowAnonymousToFolder("/Destilados");
+    options.Conventions.AllowAnonymousToFolder("/Cafe");
+
+    // Panel de administración solo para Admin
     options.Conventions.AuthorizeFolder("/Admin", "CatalogAdmin");
 });
 
@@ -79,7 +85,7 @@ using (var scope = app.Services.CreateScope())
         var createResult = await userManager.CreateAsync(adminUser, adminPassword);
         if (!createResult.Succeeded)
         {
-            throw new Exception("No se pudo crear el usuario admin: " + string.Join(",", createResult.Errors.Select(e=>e.Description)));
+            throw new Exception("No se pudo crear el usuario admin: " + string.Join(",", createResult.Errors.Select(e => e.Description)));
         }
     }
 
