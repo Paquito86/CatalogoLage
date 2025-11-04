@@ -375,6 +375,7 @@
  const contextMenu=document.getElementById('context-menu'); let contextTargetCard=null; let contextIsUnassigned=false;
  let autoScrollInterval=null; const scrollEdgeSize=60; const scrollSpeed=12;
 
+ // Modal asignación coordenadas
  const assignModalEl=document.getElementById('assignCoordModal');
  const assignProductId=document.getElementById('assignProductId');
  const assignX=document.getElementById('assignX');
@@ -404,40 +405,41 @@
  assignX?.addEventListener('input', validateAssignForm);
  assignY?.addEventListener('input', validateAssignForm);
 
- assignForm?.addEventListener('submit', async function(e){ e.preventDefault(); const productId=assignProductId.value; const x=parseInt(assignX.value,10); const y=parseInt(assignY.value,10);
- if(Number.isNaN(x)||Number.isNaN(y)) { alert('Valores no válidos'); return; }
- if(y<0 || y>=allowedRows){ alert('Fila fuera de rango'); return; }
- if(x<0 || x>=matrixColumns){ alert('Columna fuera de rango'); return; }
- if(reservedRows.has(y)) { alert('La fila indicada está reservada por un título'); return; }
- try{
- const token=document.querySelector('input[name="__RequestVerificationToken"]').value;
- const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token);
- const resp=await fetch('/Destilados?handler=PlaceUnassigned',{method:'POST',body:fd});
- if(resp.ok){ closeAssignModal(); location.reload(); } else { alert('Error: '+await resp.text()); }
- }catch(err){ console.error(err); alert('Error al asignar coordenadas'); }
+ // Secciones: calcular rango (jerárquico h1/h2)
+ const sectionRows=[...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b)=>parseInt(a.dataset.y)-parseInt(b.dataset.y));
+ function getSectionRange(row){
+ const yStart=parseInt(row.dataset.y); const level=parseInt(row.dataset.level||'2');
+ if(level===1){ const nextH1 = sectionRows.find(r=> parseInt(r.dataset.y) > yStart && parseInt(r.dataset.level||'2')===1); const yEnd = nextH1 ? (parseInt(nextH1.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd}; }
+ const idx=sectionRows.indexOf(row); const next= idx>=0 && idx+1<sectionRows.length ? sectionRows[idx+1] : null; const yEnd = next ? (parseInt(next.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd};
+ }
+ function setSectionCollapsed(row, collapsed){
+ const icon=row.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-up', !collapsed); icon.classList.toggle('bi-chevron-down', collapsed); }
+ const {yStart,yEnd}=getSectionRange(row);
+ allMatrixCells.forEach(c=>{ const y=parseInt(c.dataset.y); if(!Number.isNaN(y) && y>yStart && y<=yEnd){ c.classList.toggle('hidden-by-section', collapsed); }});
+ if(parseInt(row.dataset.level||'2')===1){ sectionRows.forEach(sr=>{ const y=parseInt(sr.dataset.y); if(y>yStart && y<=yEnd){ const icon=sr.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-down', collapsed); icon.classList.toggle('bi-chevron-up', !collapsed); } sr.classList.toggle('section-collapsed', collapsed); }}); }
+ }
+
+ // Persistencia (solo admin)
+ let collapsedSet = new Set();
+ try { if(isAdmin){ const saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); if(Array.isArray(saved)) { collapsedSet = new Set(saved.map(v=>parseInt(v,10)).filter(v=>!Number.isNaN(v))); } } } catch {}
+ // Aplicar guardado (si existiese)
+ sectionRows.forEach(row=>{ const y=parseInt(row.dataset.y); if(collapsedSet.has(y)){ row.classList.add('section-collapsed'); setSectionCollapsed(row,true); }});
+
+ // Delegación de eventos para mayor robustez
+ document.addEventListener('click', function(e){
+ const btn = e.target.closest('.toggle-section');
+ if(!btn) return;
+ const row = btn.closest('.section-row');
+ const collapsed = row.classList.toggle('section-collapsed');
+ setSectionCollapsed(row, collapsed);
+ const y = parseInt(row.dataset.y);
+ if(!Number.isNaN(y)){
+ if(collapsed){ collapsedSet.add(y);} else { collapsedSet.delete(y);} if(isAdmin){ try{ localStorage.setItem(storageKey, JSON.stringify([...collapsedSet])); }catch{} }
+ }
  });
 
- const sectionRows=[...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b)=>parseInt(a.dataset.y)-parseInt(b.dataset.y));
- const toggleButtons=[...document.querySelectorAll('.toggle-section')];
- function getSectionRange(row){ const yStart=parseInt(row.dataset.y); const level=parseInt(row.dataset.level||'2'); if(level===1){ // Buscar el siguiente H1 const nextH1 = sectionRows.find(r=> parseInt(r.dataset.y) > yStart && parseInt(r.dataset.level||'2')===1); const yEnd = nextH1 ? (parseInt(nextH1.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd}; } // Para H2, hasta el siguiente título (de cualquier nivel) const idx=sectionRows.indexOf(row); const next= idx>=0 && idx+1<sectionRows.length ? sectionRows[idx+1] : null; const yEnd = next ? (parseInt(next.dataset.y)-1) : (matrixRows-1); return {yStart,yEnd}; }
- function setSectionCollapsed(row, collapsed){ const icon=row.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-up', !collapsed); icon.classList.toggle('bi-chevron-down', collapsed); } const {yStart,yEnd}=getSectionRange(row); allMatrixCells.forEach(c=>{ const y=parseInt(c.dataset.y); if(!Number.isNaN(y) && y>yStart && y<=yEnd){ c.classList.toggle('hidden-by-section', collapsed); }}); // Si colapsa un H1, también colapsar visualmente los H2 anidados (solo icono)
- if(parseInt(row.dataset.level||'2')===1){
- sectionRows.forEach(sr=>{ const y=parseInt(sr.dataset.y); if(y>yStart && y<=yEnd){ const icon=sr.querySelector('.toggle-section i'); if(icon){ icon.classList.toggle('bi-chevron-down', collapsed); icon.classList.toggle('bi-chevron-up', !collapsed); } sr.classList.toggle('section-collapsed', collapsed); }});
- }
- }
-
- // Persistencia solo en modo edición
- let collapsedSet = new Set();
+ // Drag & drop solo en modo edición
  if(isAdmin){
- try { const saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); if(Array.isArray(saved)) { collapsedSet = new Set(saved.map(v=>parseInt(v,10)).filter(v=>!Number.isNaN(v))); } } catch {}
- // Aplicar guardado (solo admin)
- sectionRows.forEach(row=>{ const y=parseInt(row.dataset.y); if(collapsedSet.has(y)){ row.classList.add('section-collapsed'); setSectionCollapsed(row,true); }});
- }
- // Manejar clicks siempre, pero guardar en storage solo si admin
- toggleButtons.forEach(btn=>{ btn.addEventListener('click', function(){ const row=this.closest('.section-row'); const collapsed=row.classList.toggle('section-collapsed'); setSectionCollapsed(row, collapsed); const y=parseInt(row.dataset.y); if(!Number.isNaN(y)){ if(collapsed){ collapsedSet.add(y);} else { collapsedSet.delete(y);} if(isAdmin){ try{ localStorage.setItem(storageKey, JSON.stringify([...collapsedSet])); }catch{} } } }); });
-
- if(isAdmin){
- // Drag & drop sólo en modo edición
  dragAreas.forEach(dragArea=>{ const productCard=dragArea.closest('.card'); const productId=productCard.dataset.productId;
  dragArea.addEventListener('dragstart',function(e){ e.stopPropagation(); this.classList.add('dragging'); productCard.classList.add('being-dragged'); e.dataTransfer.setData('text/plain', productId); e.dataTransfer.effectAllowed='move'; });
  dragArea.addEventListener('dragend',function(){ this.classList.remove('dragging'); productCard.classList.remove('being-dragged'); dropCells.forEach(c=>c.classList.remove('drag-over')); stopAutoScroll(); });
@@ -449,6 +451,7 @@
  cell.addEventListener('dragleave',function(e){ if(!this.contains(e.relatedTarget)) this.classList.remove('drag-over'); });
  cell.addEventListener('drop',function(e){ e.preventDefault(); this.classList.remove('drag-over'); stopAutoScroll(); const productId=e.dataTransfer.getData('text/plain'); const x=parseInt(this.dataset.x); const y=parseInt(this.dataset.y); if(x>=0&&x<matrixColumns&&y>=0&&y<matrixRows&&y<allowedRows&&!reservedRows.has(y)){ updateProductPosition(productId,x,y); } });
  });
+ }
 
  function handleAutoScroll(mouseY){ const vh=window.innerHeight; if(vh - mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: scrollSpeed, behavior: 'auto'}); },16);} } else if(mouseY < scrollEdgeSize){ if(!autoScrollInterval){ autoScrollInterval=setInterval(()=>{ window.scrollBy({ top: -scrollSpeed, behavior: 'auto'}); },16);} } else { stopAutoScroll(); } }
  function stopAutoScroll(){ if(autoScrollInterval){ clearInterval(autoScrollInterval); autoScrollInterval=null; } }
@@ -471,7 +474,6 @@
  document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
- }
 
  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}
