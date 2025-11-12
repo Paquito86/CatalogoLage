@@ -16,25 +16,22 @@ public class IndexModel : PageModel
     public List<string> Wineries { get; set; } = new();
     public List<string> Origins { get; set; } = new();
     public List<GrapeType> GrapeTypes { get; set; } = new();
-
     public Product?[,] ProductMatrix { get; set; } = new Product[0, 0];
     public List<Product> UnpositionedProducts { get; set; } = new();
     public bool IsAdminMode { get; set; }
     public int MatrixRows { get; set; }
     public int MatrixColumns { get; set; } = 3;
-
     public List<CatalogSpiritsTitleRow> TitleRows { get; set; } = new();
     public HashSet<(int x,int y)> EmptyCells { get; set; } = new();
-
     public int MaxAllowedRows { get; set; }
-
     [BindProperty(SupportsGet = true)] public string? Query { get; set; }
     [BindProperty(SupportsGet = true)] public int? CategoryId { get; set; }
     [BindProperty(SupportsGet = true)] public string? Winery { get; set; }
     [BindProperty(SupportsGet = true)] public string? Origin { get; set; }
     [BindProperty(SupportsGet = true)] public int? GrapeTypeId { get; set; }
     [BindProperty(SupportsGet = true)] public bool AdminMode { get; set; }
-
+    [BindProperty(SupportsGet = true)] public bool Print { get; set; } // modo impresión
+    public bool IsPrintMode { get; set; }
     public bool IsFiltered { get; set; }
     public HashSet<int> TitleRowsWithProducts { get; set; } = new();
 
@@ -43,48 +40,29 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Categories = await _ctx.Categories
-            .Where(c => c.SortOrder == 2)
-            .OrderBy(c => c.Name).ToListAsync();
-
-        var baseProducts = SpiritsOnly(_ctx.Products
-            .Include(p => p.Category)
-            .Include(p => p.GrapeType));
-
-        Wineries = await baseProducts.Where(p => p.Winery != null && p.Winery != "").Select(p => p.Winery!)
-            .Distinct().OrderBy(x => x).ToListAsync();
-        Origins = await baseProducts.Where(p => p.Origin != null && p.Origin != "").Select(p => p.Origin!)
-            .Distinct().OrderBy(x => x).ToListAsync();
+        Categories = await _ctx.Categories.Where(c => c.SortOrder == 2).OrderBy(c => c.Name).ToListAsync();
+        var baseProducts = SpiritsOnly(_ctx.Products.Include(p => p.Category).Include(p => p.GrapeType));
+        Wineries = await baseProducts.Where(p => p.Winery != null && p.Winery != "").Select(p => p.Winery!).Distinct().OrderBy(x => x).ToListAsync();
+        Origins = await baseProducts.Where(p => p.Origin != null && p.Origin != "").Select(p => p.Origin!).Distinct().OrderBy(x => x).ToListAsync();
         GrapeTypes = await _ctx.GrapeTypes.OrderBy(g => g.Name).ToListAsync();
-
         var q = baseProducts;
         if (!string.IsNullOrWhiteSpace(Query))
         {
             var term = $"%{Query.Trim()}%";
-            q = q.Where(p =>
-                EF.Functions.Like(p.Name, term) ||
-                EF.Functions.Like(p.Description ?? string.Empty, term) ||
-                EF.Functions.Like(p.Manufacturer ?? string.Empty, term) ||
-                EF.Functions.Like(p.Winery ?? string.Empty, term) ||
-                EF.Functions.Like(p.Origin ?? string.Empty, term) ||
-                EF.Functions.Like(p.Size ?? string.Empty, term) ||
-                EF.Functions.Like(p.Category!.Name, term) ||
-                EF.Functions.Like(p.GrapeType!.Name, term)
-            );
+            q = q.Where(p => EF.Functions.Like(p.Name, term) || EF.Functions.Like(p.Description ?? string.Empty, term) || EF.Functions.Like(p.Manufacturer ?? string.Empty, term) || EF.Functions.Like(p.Winery ?? string.Empty, term) || EF.Functions.Like(p.Origin ?? string.Empty, term) || EF.Functions.Like(p.Size ?? string.Empty, term) || EF.Functions.Like(p.Category!.Name, term) || EF.Functions.Like(p.GrapeType!.Name, term));
         }
         if (CategoryId.HasValue) q = q.Where(p => p.CategoryId == CategoryId.Value);
         if (!string.IsNullOrWhiteSpace(Winery)) q = q.Where(p => p.Winery == Winery);
         if (!string.IsNullOrWhiteSpace(Origin)) q = q.Where(p => p.Origin == Origin);
         if (GrapeTypeId.HasValue) q = q.Where(p => p.GrapeTypeId == GrapeTypeId.Value);
-
         Products = await q.OrderBy(p => p.Name).ToListAsync();
-
         TitleRows = await _ctx.CatalogSpiritsTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
         EmptyCells = (await _ctx.CatalogSpiritsEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
         IsAdminMode = AdminMode && User.IsInRole("Admin");
+        IsPrintMode = Print && User.IsInRole("Admin");
+        ViewData["PrintMode"] = IsPrintMode; // layout usage
         OrganizeProductsInMatrix();
         MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
-
         IsFiltered = !string.IsNullOrWhiteSpace(Query) || CategoryId.HasValue || !string.IsNullOrWhiteSpace(Winery) || !string.IsNullOrWhiteSpace(Origin) || GrapeTypeId.HasValue;
         ComputeTitleRowsWithProducts();
     }

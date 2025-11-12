@@ -10,52 +10,55 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CatalogoLage.styles.css" asp-append-version="true" />
-    
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+    @{ var printMode = (ViewData["PrintMode"] as bool?) == true; }
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" asp-area="" asp-page="/Index">
                     <img src="https://almaceneslage.com/wp-content/uploads/2016/12/logo_LAGE.png" alt="LAGE" style="height:32px; width:auto; max-height:36px;" />
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Alternar navegación">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Inicio</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Index">Vino</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Destilados/Index">Destilados</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Cafe/Index">Café e Infusiones</a>
-                        </li>
-                        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Administración
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Products/Index">Productos</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Categories/Index">Categorías</a></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/GrapeTypes/Index">Tipos de uva</a></li>
-                                    <li><hr class="dropdown-divider" /></li>
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Otros/Index">Otros</a></li>
-                                </ul>
+                @if (!printMode)
+                {
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Alternar navegación">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Index">Inicio</a>
                             </li>
-                        }
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Catalog/Index">Vino</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Destilados/Index">Destilados</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-page="/Cafe/Index">Café e Infusiones</a>
+                            </li>
+                            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Administración
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Products/Index">Productos</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Categories/Index">Categorías</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/Admin/GrapeTypes/Index">Tipos de uva</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Otros/Index">Otros</a></li>
+                                    </ul>
+                                </li>
+                            }
+                        </ul>
+                        <partial name="_LoginPartial" />
+                    </div>
+                }
             </div>
         </nav>
     </header>
@@ -67,7 +70,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy;2025 Álvaro Díaz para Almacenes Lage @*<a asp-area="" asp-page="/Privacy">Política de Privacidad</a>*@
+            &copy; 2025 Álvaro Díaz para Almacenes Lage @*<a asp-area="" asp-page="/Privacy">Política de Privacidad</a>*@
         </div>
     </footer>
 
@@ -75,7 +78,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin") && !printMode)
     {
         <partial name="_ProductInlineEdit" />
     }

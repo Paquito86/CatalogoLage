@@ -35,6 +35,9 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)] public int? GrapeTypeId { get; set; }
     [BindProperty(SupportsGet = true)] public bool AdminMode { get; set; }
 
+    [BindProperty(SupportsGet = true)] public bool Print { get; set; }
+    public bool IsPrintMode { get; set; }
+
     public bool IsFiltered { get; set; }
     public HashSet<int> TitleRowsWithProducts { get; set; } = new();
 
@@ -82,6 +85,8 @@ public class IndexModel : PageModel
         TitleRows = await _ctx.CatalogCafeTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
         EmptyCells = (await _ctx.CatalogCafeEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
         IsAdminMode = AdminMode && User.IsInRole("Admin");
+        IsPrintMode = Print && User.IsInRole("Admin");
+        ViewData["PrintMode"] = IsPrintMode; // layout usage
         OrganizeProductsInMatrix();
         MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
 

@@ -5,7 +5,7 @@
 }
 <h1>Catálogo de Destilados</h1>
 
-@if (User.IsInRole("Admin"))
+@if (User.IsInRole("Admin") && !Model.IsPrintMode)
 {
  <div class="mb-3">
  <form method="get" class="d-inline">
@@ -27,18 +27,29 @@
  <button type="submit" class="btn btn-warning">Modo edición de matriz</button>
  }
  </form>
+ 
+ @* Botón Versión para imprimir (solo admin) *@
+ <form method="get" class="d-inline ms-2">
+ @if (!string.IsNullOrEmpty(Model.Query)) { <input type="hidden" name="Query" value="@Model.Query" /> }
+ @if (Model.CategoryId.HasValue) { <input type="hidden" name="CategoryId" value="@Model.CategoryId" /> }
+ @if (!string.IsNullOrEmpty(Model.Winery)) { <input type="hidden" name="Winery" value="@Model.Winery" /> }
+ @if (!string.IsNullOrEmpty(Model.Origin)) { <input type="hidden" name="Origin" value="@Model.Origin" /> }
+ @if (Model.GrapeTypeId.HasValue) { <input type="hidden" name="GrapeTypeId" value="@Model.GrapeTypeId" /> }
+ <input type="hidden" name="Print" value="true" />
+ <button type="submit" class="btn btn-outline-secondary">Versión para imprimir</button>
+ </form>
  </div>
 }
 
 @* Token antifalsificación *@
-@if (Model.IsAdminMode)
+@if (Model.IsAdminMode && !Model.IsPrintMode)
 {
  <form style="display: none;">
  @Html.AntiForgeryToken()
  </form>
 }
 
-@if (Model.IsAdminMode)
+@if (Model.IsAdminMode && !Model.IsPrintMode)
 {
  <div class="alert alert-info mb-3">
  <strong>Modo edición:</strong> Arrastra tarjetas. Usa el formulario inferior para crear títulos. Cada título ocupa una fila completa.
@@ -84,6 +95,8 @@
  </div>
 }
 
+@if (!Model.IsPrintMode)
+{
 <form method="get" class="mb-3">
  <div class="row g-2 align-items-end">
  <div class="col-md-6">
@@ -105,12 +118,13 @@
  </div>
  </div>
 </form>
+}
 
 @{
  var titleRows = Model.TitleRows.ToDictionary(t => t.MatrixY);
 }
 
-<div class="matrix-container mb-4">
+<div class="matrix-container @(Model.IsPrintMode ? "no-center" : "") mb-4">
  <div class="matrix-grid @(Model.IsAdminMode ? "admin-mode" : "view-mode") @(Model.IsFiltered ? "filtered-mode" : "")" style="grid-template-columns: repeat(@Model.MatrixColumns,1fr);">
  @for (int y =0; y < Model.MatrixRows; y++)
  {
@@ -121,12 +135,15 @@
  <div class="matrix-title-row section-row @(showTitle ? string.Empty : "no-products")" data-y="@y" data-level="@t.Level" style="grid-column:1 / span @Model.MatrixColumns; position: relative;">
  <div class="d-flex justify-content-between align-items-center">
  <div class="d-flex align-items-center gap-2">
+ @if (!Model.IsPrintMode)
+ {
  <button type="button" class="btn btn-sm btn-outline-secondary toggle-section" title="Colapsar/expandir sección">
  <i class="bi bi-chevron-up"></i>
  </button>
+ }
  @if (t.Level ==1) { <h3 class="m-0 title-h1">@t.Text @if(Model.IsAdminMode){<small class="text-muted ms-2">Fila @t.MatrixY</small>}</h3> } else { <h4 class="m-0">@t.Text @if(Model.IsAdminMode){<small class="text-muted ms-2">Fila @t.MatrixY</small>}</h4> }
  </div>
- @if (Model.IsAdminMode)
+ @if (Model.IsAdminMode && !Model.IsPrintMode)
  {
  <div class="d-flex align-items-center gap-2">
  <form method="post" asp-page-handler="UpdateTitle" class="row g-1 align-items-end">
@@ -158,7 +175,7 @@
  </div>
  }
  </div>
- @if (Model.IsAdminMode)
+ @if (Model.IsAdminMode && !Model.IsPrintMode)
  {
  <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
  <input type="hidden" name="y" value="@y" />
@@ -174,7 +191,7 @@
  bool isEmptyReserved = Model.EmptyCells.Contains((x,y));
  bool isEmptyCell = Model.ProductMatrix[y, x] == null;
  <div class="matrix-cell @(Model.IsAdminMode ? "editable" : "") @(isEmptyReserved && Model.IsAdminMode ? "reserved-empty" : "") @(Model.IsFiltered && isEmptyCell ? "empty" : "")" data-x="@x" data-y="@y" style="position: relative;">
- @if (x == Model.MatrixColumns -1 && Model.IsAdminMode)
+ @if (x == Model.MatrixColumns -1 && Model.IsAdminMode && !Model.IsPrintMode)
  {
  <form method="post" asp-page-handler="DeleteRow" class="delete-row-form">
  <input type="hidden" name="y" value="@y" />
@@ -186,7 +203,7 @@
  {
  var p = Model.ProductMatrix[y, x];
  <div class="card product-card h-100 @(Model.IsAdminMode ? "draggable" : "")" @(Model.IsAdminMode ? "draggable=\"false\"" : "") data-product-id="@p!.Id" data-x="@x" data-y="@y">
- @if (Model.IsAdminMode)
+ @if (Model.IsAdminMode && !Model.IsPrintMode)
  {
  <div class="drag-area @(p.MatrixXSpirits.HasValue && p.MatrixYSpirits.HasValue ? "positioned" : "")" draggable="true">
  <div class="drag-handle">
@@ -196,7 +213,7 @@
  </div>
  <div class="position-indicator">@($"{x},{y}")</div>
  }
- <div class="card-horizontal @(Model.IsAdminMode ? "non-draggable" : "")">
+ <div class="card-horizontal @(Model.IsAdminMode && !Model.IsPrintMode ? "non-draggable" : "")">
  <div class="product-image-box">
  @if (!string.IsNullOrEmpty(p.ImageUrl)) { <img src="@p.ImageUrl" alt="@p.Name" draggable="false" /> }
  else if(!Model.IsAdminMode) { <div class="no-image-placeholder"><i class="text-muted">?</i><span class="text-muted small">Sin imagen</span></div> }
@@ -216,7 +233,7 @@
  <li><strong>Categoría:</strong> @p.Category?.Name</li>
  </ul>
  }
- @if (Model.IsAdminMode)
+ @if (Model.IsAdminMode && !Model.IsPrintMode)
  {
  <ul class="list-unstyled small text-muted mb-1">
  @if (!string.IsNullOrWhiteSpace(p.Origin)) { <li><strong>Origen:</strong> @p.Origin</li> }
@@ -228,7 +245,7 @@
  </div>
  </div>
  }
- else if (Model.IsAdminMode)
+ else if (Model.IsAdminMode && !Model.IsPrintMode)
  {
  if (isEmptyReserved) { <div class="empty-cell-indicator reserved">@($"{x},{y}")</div> }
  else { <div class="empty-cell-indicator">@($"{x},{y}")</div> }
@@ -239,7 +256,7 @@
  </div>
 </div>
 
-@if (Model.IsAdminMode)
+@if (Model.IsAdminMode && !Model.IsPrintMode)
 {
  <div class="d-flex justify-content-end mb-4 gap-2">
  <form method="post" asp-page-handler="InsertRow" class="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light">
@@ -263,7 +280,7 @@
  </div>
 }
 
-@if (Model.IsAdminMode && Model.UnpositionedProducts.Any())
+@if (Model.IsAdminMode && Model.UnpositionedProducts.Any() && !Model.IsPrintMode)
 {
  <h5>Productos sin posición asignada (@Model.UnpositionedProducts.Count):</h5>
  <div class="unpositioned-products mb-4" id="unassigned-container" style="display:grid; grid-template-columns: repeat(@Model.MatrixColumns,1fr); gap:15px;">
@@ -298,43 +315,13 @@
  <button type="button" id="btnVaciarCelda" class="dropdown-item">Reservar celda como vacía</button>
  <button type="button" id="btnAsignarCoordenadas" class="dropdown-item d-none">Asignar coordenadas…</button>
  </div>
-
- @* Modal Bootstrap para asignar coordenadas *@
- <div class="modal fade" id="assignCoordModal" tabindex="-1" aria-labelledby="assignCoordLabel" aria-hidden="true">
- <div class="modal-dialog modal-sm modal-dialog-centered">
- <div class="modal-content">
- <div class="modal-header py-2">
- <h6 class="modal-title" id="assignCoordLabel">Asignar coordenadas</h6>
- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
- </div>
- <form id="assignCoordForm">
- <div class="modal-body">
- <input type="hidden" id="assignProductId" />
- <div class="mb-2">
- <label for="assignX" class="form-label small mb-1">Columna (X)</label>
- <input type="number" class="form-control form-control-sm" id="assignX" min="0" value="0" />
- </div>
- <div class="mb-2">
- <label for="assignY" class="form-label small mb-1">Fila (Y)</label>
- <input type="number" class="form-control form-control-sm" id="assignY" min="0" value="0" />
- <div class="form-text">Evita filas de título.</div>
- <div id="assignYReserved" class="form-text text-danger d-none">Fila reservada por un título.</div>
- </div>
- </div>
- <div class="modal-footer py-2">
- <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
- <button type="submit" id="btnAssignConfirm" class="btn btn-sm btn-primary">Asignar</button>
- </div>
- </form>
- </div>
- </div>
- </div>
 }
 
 @section Styles {
  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
  <style>
  .matrix-container{max-width:1200px;margin:0 auto}.matrix-grid{display:grid;gap:15px;padding:20px;background:#f8f9fa;border-radius:8px}.matrix-grid.view-mode{background:#fff;border:1px solid #dee2e6}.matrix-cell{min-height:250px;border-radius:8px;position:relative;transition:all .3s ease;display:flex;flex-direction:column}.matrix-cell.editable{border:2px dashed #dee2e6}.matrix-cell.editable.drag-over{border-color:#0d6efd;background-color:rgba(13,110,253,.1)}.matrix-cell.reserved-empty{background:repeating-linear-gradient(45deg,#ffe5e5,#ffe5e58px,#ffd6d68px,#ffd6d616px);position:relative}
+ .matrix-container.no-center{max-width:none;margin:0}
  .matrix-cell.reserved-empty{border:1px solid #ced4da}
  .matrix-cell.reserved-empty::after{content:"VACÍA";position:absolute;top:4px;right:6px;font-size:10px;background:#dc3545;color:#fff;padding:2px 4px;border-radius:3px;font-weight:600;letter-spacing:1px}
  .matrix-title-row{background:#fff;border:1px solid #ced4da;padding:8px 12px;border-radius:6px;position:relative}
@@ -426,6 +413,7 @@
  sectionRows.forEach(row=>{ const y=parseInt(row.dataset.y); if(collapsedSet.has(y)){ row.classList.add('section-collapsed'); setSectionCollapsed(row,true); }});
 
  // Delegación de eventos para mayor robustez
+ if(!@Model.IsPrintMode.ToString().ToLower()){
  document.addEventListener('click', function(e){
  const btn = e.target.closest('.toggle-section');
  if(!btn) return;
@@ -437,9 +425,10 @@
  if(collapsed){ collapsedSet.add(y);} else { collapsedSet.delete(y);} if(isAdmin){ try{ localStorage.setItem(storageKey, JSON.stringify([...collapsedSet])); }catch{} }
  }
  });
+ }
 
- // Drag & drop solo en modo edición
- if(isAdmin){
+ // Drag & drop solo en modo edición y no en print
+ if(isAdmin && !@Model.IsPrintMode.ToString().ToLower()){
  dragAreas.forEach(dragArea=>{ const productCard=dragArea.closest('.card'); const productId=productCard.dataset.productId;
  dragArea.addEventListener('dragstart',function(e){ e.stopPropagation(); this.classList.add('dragging'); productCard.classList.add('being-dragged'); e.dataTransfer.setData('text/plain', productId); e.dataTransfer.effectAllowed='move'; });
  dragArea.addEventListener('dragend',function(){ this.classList.remove('dragging'); productCard.classList.remove('being-dragged'); dropCells.forEach(c=>c.classList.remove('drag-over')); stopAutoScroll(); });
@@ -458,6 +447,7 @@
 
  document.addEventListener('selectstart',function(e){ if(e.target.closest('.non-draggable')){ e.preventDefault(); return false; }});
 
+ if(!@Model.IsPrintMode.ToString().ToLower()){
  document.addEventListener('contextmenu',function(e){ const card=e.target.closest('.product-card'); const isUnassigned=card && card.dataset.unassigned === 'true'; if(card && (card.dataset.productId || isUnassigned)){
  e.preventDefault(); contextTargetCard=card; contextIsUnassigned=!!isUnassigned;
  if(isUnassigned){
@@ -474,6 +464,7 @@
  document.addEventListener('click',function(){ if(contextMenu) contextMenu.classList.add('d-none'); });
 
  const btnVaciar=document.getElementById('btnVaciarCelda'); if(btnVaciar){ btnVaciar.addEventListener('click', async function(){ if(!contextTargetCard) return; const productId=contextTargetCard.dataset.productId; const x=contextTargetCard.dataset.x || contextTargetCard.parentElement.dataset.x; const y=contextTargetCard.dataset.y || contextTargetCard.parentElement.dataset.y; if(!confirm('¿Reservar esta celda como vacía?')) return; await vaciarCelda(productId,x,y); }); }
+ }
 
  async function updateProductPosition(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=UpdatePosition',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al actualizar posición'); }}
  async function vaciarCelda(productId,x,y){ try{ const token=document.querySelector('input[name="__RequestVerificationToken"]').value; const fd=new FormData(); fd.append('productId',productId); fd.append('x',x); fd.append('y',y); fd.append('__RequestVerificationToken',token); const resp=await fetch('/Destilados?handler=VaciarCelda',{method:'POST',body:fd}); if(resp.ok){ location.reload(); } else { alert('Error: '+await resp.text()); } }catch(err){ console.error(err); alert('Error al reservar celda'); }}

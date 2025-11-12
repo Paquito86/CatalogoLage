@@ -35,6 +35,10 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)] public int? GrapeTypeId { get; set; }
     [BindProperty(SupportsGet = true)] public bool AdminMode { get; set; }
 
+    // Print mode
+    [BindProperty(SupportsGet = true)] public bool Print { get; set; }
+    public bool IsPrintMode { get; set; }
+
     public bool IsFiltered { get; set; }
     public HashSet<int> TitleRowsWithProducts { get; set; } = new();
 
@@ -47,11 +51,9 @@ public class IndexModel : PageModel
             .Where(c => c.SortOrder == null || c.SortOrder == 1)
             .OrderBy(c => c.Name)
             .ToListAsync();
-
         var baseProducts = WinesOnly(_ctx.Products
             .Include(p => p.Category)
             .Include(p => p.GrapeType));
-
         Wineries = await baseProducts
             .Where(p => p.Winery != null && p.Winery != "")
             .Select(p => p.Winery!)
@@ -65,7 +67,6 @@ public class IndexModel : PageModel
             .OrderBy(x => x)
             .ToListAsync();
         GrapeTypes = await _ctx.GrapeTypes.OrderBy(g => g.Name).ToListAsync();
-
         var q = baseProducts;
         if (!string.IsNullOrWhiteSpace(Query))
         {
@@ -85,16 +86,14 @@ public class IndexModel : PageModel
         if (!string.IsNullOrWhiteSpace(Winery)) q = q.Where(p => p.Winery == Winery);
         if (!string.IsNullOrWhiteSpace(Origin)) q = q.Where(p => p.Origin == Origin);
         if (GrapeTypeId.HasValue) q = q.Where(p => p.GrapeTypeId == GrapeTypeId.Value);
-
         Products = await q.OrderBy(p => p.Name).ToListAsync();
-
         TitleRows = await _ctx.CatalogTitleRows.OrderBy(t => t.MatrixY).ToListAsync();
         EmptyCells = (await _ctx.CatalogEmptyCells.ToListAsync()).Select(e => (e.X, e.Y)).ToHashSet();
-
         IsAdminMode = AdminMode && User.IsInRole("Admin");
+        IsPrintMode = Print && User.IsInRole("Admin");
+        ViewData["PrintMode"] = IsPrintMode; // propagate to layout
         OrganizeProductsInMatrix();
         MaxAllowedRows = await ComputeMaxAllowedRowsAsync();
-
         IsFiltered = !string.IsNullOrWhiteSpace(Query) || CategoryId.HasValue || !string.IsNullOrWhiteSpace(Winery) || !string.IsNullOrWhiteSpace(Origin) || GrapeTypeId.HasValue;
         ComputeTitleRowsWithProducts();
     }
