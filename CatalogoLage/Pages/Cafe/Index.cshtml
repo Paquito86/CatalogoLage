@@ -373,7 +373,39 @@
  /* En modo filtrado ocultar celdas vacías y títulos sin productos */
  .matrix-grid.filtered-mode .matrix-cell.empty { display:none; }
  .matrix-grid.filtered-mode .matrix-title-row.no-products { display:none; }
- </style>
+	 /* ===================== RESPONSIVE (Tablet) ===================== */
+	 @@media (max-width:992px){
+	 .matrix-container{max-width:100%;padding:010px}
+	 .matrix-grid{padding:15px;gap:12px}
+	 .matrix-title-row{padding:6px 10px}
+	 .matrix-title-row h3,.matrix-title-row h4{font-size:1.15rem}
+	 .product-image-box{width:150px;min-width:150px;height:240px;padding:8px}
+	 .admin-mode .product-image-box,.product-image-box.small{width:120px;min-width:120px;height:220px}
+	 .product-image-box img{height:220px}
+	 .card-body{padding:.75rem}
+	 .card-title{font-size:.95rem}
+	 .card-subtitle{font-size:.75rem}
+	 .drag-area{width:54px;height:54px}
+	 }
+	 /* ===================== RESPONSIVE (Mobile) ===================== */
+	 @@media (max-width:576px){
+	 h1{font-size:1.5rem}
+	 .matrix-grid{padding:10px;gap:10px}
+	 .matrix-cell{min-height:auto}
+	 .card-horizontal{flex-direction:column}
+	 .product-image-box,.admin-mode .product-image-box,.product-image-box.small{width:100%;min-width:0;height:180px;padding:6px;border-radius:.375rem .375rem}
+	 .product-image-box img{height:170px}
+	 .card-body{padding:.5rem}
+	 .card-title{font-size:.9rem}
+	 .card-subtitle{font-size:.7rem}
+	 .drag-area{width:46px;height:46px}
+	 .matrix-title-row{padding:6px 8px}
+	 .matrix-title-row h3,.matrix-title-row h4{font-size:1rem}
+	 /* Scroll horizontal opcional si la matriz es muy ancha */
+	 .matrix-container{overflow-x:auto}
+	 .matrix-grid{min-width:600px}
+	 }
+	</style>
 }
 
 @section Scripts {

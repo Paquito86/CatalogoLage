@@ -1,17 +1,17 @@
-@using Microsoft.AspNetCore.Antiforgery
+ï»¿@using Microsoft.AspNetCore.Antiforgery
 @inject IAntiforgery Antiforgery
 
-<!-- Menú contextual reutilizable (solo vista, no modo edición) -->
+<!-- MenÃº contextual reutilizable (solo vista, no modo ediciÃ³n) -->
 <div id="global-product-context" class="context-menu d-none">
- <button type="button" id="gpc-edit" class="dropdown-item">Editar producto…</button>
+ <button type="button" id="gpc-edit" class="dropdown-item">Editar productoâ€¦</button>
 </div>
 
-<!-- Token antifalsificación global -->
+<!-- Token antifalsificaciÃ³n global -->
 <form id="global-antiforgery" style="display:none;">
  @Html.AntiForgeryToken()
 </form>
 
-<!-- Modal edición de producto (reutilizable) -->
+<!-- Modal ediciÃ³n de producto (reutilizable) -->
 <div class="modal fade" id="productEditModal" tabindex="-1" aria-labelledby="productEditLabel" aria-hidden="true">
  <div class="modal-dialog modal-lg modal-dialog-centered">
  <div class="modal-content">
@@ -28,7 +28,7 @@
  <input class="form-control form-control-sm" id="pe-name" name="Name" required />
  </div>
  <div class="col-md-6">
- <label class="form-label small">Categoría</label>
+ <label class="form-label small">CategorÃ­a</label>
  <select class="form-select form-select-sm" id="pe-category" name="CategoryId"></select>
  </div>
  <div class="col-md-6" id="pe-winery-field">
@@ -53,7 +53,7 @@
  <input class="form-control form-control-sm" id="pe-alcohol" name="AlcoholPercent" type="text" inputmode="decimal" />
  </div>
  <div class="col-md-6">
- <label class="form-label small">Tamaño</label>
+ <label class="form-label small">TamaÃ±o</label>
  <input class="form-control form-control-sm" id="pe-size" name="Size" />
  </div>
  <div class="col-md-6">
@@ -65,7 +65,7 @@
  <input class="form-control form-control-sm" id="pe-image" name="ImageUrl" />
  </div>
  <div class="col-12">
- <label class="form-label small">Descripción</label>
+ <label class="form-label small">DescripciÃ³n</label>
  <textarea class="form-control form-control-sm" id="pe-description" name="Description" rows="3"></textarea>
  </div>
  </div>
