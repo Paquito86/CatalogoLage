@@ -1,1 +1,0 @@
-import{w as t,a as o,j as a}from"./chunk-EPOLDU6W-B9w3MOV_.js";import{C as i}from"./CatalogGrid-Dj2wkXGW.js";const n=t(function(){const s=o();return a.jsx(i,{data:s,catalogType:"spirits",title:"Catálogo de Destilados",isAdmin:s.isAdminUser,adminMode:s.adminMode,isPrintMode:s.isPrintMode})});export{n as default};
