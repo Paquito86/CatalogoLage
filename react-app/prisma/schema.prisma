@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  Id             Int       @id @default(autoincrement())
+  Name           String    @db.NVarChar(200)
+  Manufacturer   String?   @db.NVarChar(200)
+  Winery         String?   @db.NVarChar(200)
+  Price          Decimal?  @db.Decimal(12, 2)
+  Description    String?   @db.NVarChar(Max)
+  ImageUrl       String?   @db.NVarChar(Max)
+  Size           String?   @db.NVarChar(50)
+  AlcoholPercent Float?
+  Origin         String?   @db.NVarChar(100)
+  CategoryId     Int
+  GrapeTypeId    Int?
+
+  // Wine matrix coordinates
+  MatrixX Int?
+  MatrixY Int?
+
+  // Spirits matrix coordinates
+  MatrixXSpirits Int?
+  MatrixYSpirits Int?
+
+  // Coffee matrix coordinates
+  MatrixXCafe Int?
+  MatrixYCafe Int?
+
+  Category  Category   @relation(fields: [CategoryId], references: [Id], onDelete: Cascade)
+  GrapeType GrapeType? @relation(fields: [GrapeTypeId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("Products")
+}
+
+model Category {
+  Id          Int       @id @default(autoincrement())
+  Name        String    @db.NVarChar(Max)
+  Description String?   @db.NVarChar(Max)
+  SortOrder   Int?
+  Products    Product[]
+
+  @@map("Categories")
+}
+
+model GrapeType {
+  Id          Int       @id @default(autoincrement())
+  Name        String    @db.NVarChar(100)
+  Description String?   @db.NVarChar(300)
+  Products    Product[]
+
+  @@map("GrapeTypes")
+}
+
+model CatalogTitleRow {
+  Id      Int    @id @default(autoincrement())
+  Text    String @db.NVarChar(200)
+  MatrixY Int    @unique
+  Level   Int    @default(2)
+
+  @@map("CatalogTitleRows")
+}
+
+model CatalogSpiritsTitleRow {
+  Id      Int    @id @default(autoincrement())
+  Text    String @db.NVarChar(200)
+  MatrixY Int    @unique
+  Level   Int    @default(2)
+
+  @@map("CatalogSpiritsTitleRows")
+}
+
+model CatalogCafeTitleRow {
+  Id      Int    @id @default(autoincrement())
+  Text    String @db.NVarChar(200)
+  MatrixY Int    @unique
+  Level   Int    @default(2)
+
+  @@map("CatalogCafeTitleRows")
+}
+
+model CatalogEmptyCell {
+  Id Int @id @default(autoincrement())
+  X  Int
+  Y  Int
+
+  @@unique([X, Y])
+  @@map("CatalogEmptyCells")
+}
+
+model CatalogSpiritsEmptyCell {
+  Id Int @id @default(autoincrement())
+  X  Int
+  Y  Int
+
+  @@unique([X, Y])
+  @@map("CatalogSpiritsEmptyCells")
+}
+
+model CatalogCafeEmptyCell {
+  Id Int @id @default(autoincrement())
+  X  Int
+  Y  Int
+
+  @@unique([X, Y])
+  @@map("CatalogCafeEmptyCells")
+}
+
+// ASP.NET Identity tables (read-only from React app for authentication)
+model AspNetUser {
+  Id                   String              @id @db.NVarChar(450)
+  UserName             String?             @db.NVarChar(256)
+  NormalizedUserName   String?             @db.NVarChar(256)
+  Email                String?             @db.NVarChar(256)
+  NormalizedEmail      String?             @db.NVarChar(256)
+  EmailConfirmed       Boolean
+  PasswordHash         String?             @db.NVarChar(Max)
+  SecurityStamp        String?             @db.NVarChar(Max)
+  ConcurrencyStamp     String?             @db.NVarChar(Max)
+  PhoneNumber          String?             @db.NVarChar(Max)
+  PhoneNumberConfirmed Boolean
+  TwoFactorEnabled     Boolean
+  LockoutEnd           DateTime?           @db.DateTimeOffset
+  LockoutEnabled       Boolean
+  AccessFailedCount    Int
+  UserRoles            AspNetUserRole[]
+
+  @@map("AspNetUsers")
+}
+
+model AspNetRole {
+  Id               String           @id @db.NVarChar(450)
+  Name             String?          @db.NVarChar(256)
+  NormalizedName   String?          @db.NVarChar(256)
+  ConcurrencyStamp String?          @db.NVarChar(Max)
+  UserRoles        AspNetUserRole[]
+
+  @@map("AspNetRoles")
+}
+
+model AspNetUserRole {
+  UserId String     @db.NVarChar(450)
+  RoleId String     @db.NVarChar(450)
+  User   AspNetUser @relation(fields: [UserId], references: [Id], onDelete: Cascade)
+  Role   AspNetRole @relation(fields: [RoleId], references: [Id], onDelete: Cascade)
+
+  @@id([UserId, RoleId])
+  @@map("AspNetUserRoles")
+}
