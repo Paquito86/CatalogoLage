@@ -5,8 +5,10 @@
   
   **Sistema interno de gestión y visualización del catálogo de productos**
   
-  [![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
-  [![Entity Framework](https://img.shields.io/badge/Entity%20Framework-8.0-green.svg)](https://docs.microsoft.com/en-us/ef/)
+  [![React Router](https://img.shields.io/badge/React%20Router-v7-blue.svg)](https://reactrouter.com/)
+  [![Prisma](https://img.shields.io/badge/Prisma-6.9-2D3748.svg)](https://www.prisma.io/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
+  [![SQL Server](https://img.shields.io/badge/SQL%20Server-Compatible-red.svg)](https://www.microsoft.com/sql-server)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 </div>
 
@@ -14,7 +16,17 @@
 
 ## 📋 Descripción General
 
-**CatalogoLage** es la plataforma digital interna de Almacenes Lage para la gestión y presentación del catálogo de productos de bebidas. La aplicación está desarrollada con tecnología ASP.NET Core 8 y proporciona una interfaz moderna e intuitiva para empleados de la empresa.
+**CatalogoLage** es la plataforma digital interna de Almacenes Lage para la gestión y presentación del catálogo de productos de bebidas. La aplicación está desarrollada con React Router v7 (SSR), Prisma ORM y SQL Server, proporcionando una interfaz moderna e intuitiva para empleados de la empresa.
+
+### 🏗️ Stack Tecnológico
+
+- **Frontend**: React Router v7 con SSR (Server-Side Rendering)
+- **Backend**: Node.js con React Router server
+- **ORM**: Prisma 6.x
+- **Base de Datos**: Microsoft SQL Server
+- **Autenticación**: Compatible con ASP.NET Identity (cookies de sesión)
+- **Estilos**: Bootstrap 5 + CSS personalizado
+- **Despliegue**: Docker con Traefik
 
 ### 🎯 Propósito del Sistema
 
