@@ -1,5 +1,7 @@
 import { Form, useSearchParams } from "react-router";
+import { useState, useEffect } from "react";
 import type { CatalogData, CatalogType, ProductWithRelations } from "~/lib/catalog.server";
+import ProductEditModal from "./ProductEditModal";
 
 interface CatalogGridProps {
   data: CatalogData;
@@ -24,6 +26,7 @@ function ProductCard({
   adminMode,
   isPrintMode,
   catalogType,
+  onContextMenu,
 }: {
   product: ProductWithRelations;
   x: number;
@@ -32,6 +35,7 @@ function ProductCard({
   adminMode: boolean;
   isPrintMode: boolean;
   catalogType: CatalogType;
+  onContextMenu?: (e: React.MouseEvent, product: ProductWithRelations) => void;
 }) {
   const isWine = !!(product.Winery && product.Winery.trim());
   const hasPosition =
@@ -47,6 +51,7 @@ function ProductCard({
       data-product-id={product.Id}
       data-x={x}
       data-y={y}
+      onContextMenu={(e) => onContextMenu && onContextMenu(e, product)}
     >
       {adminMode && !isPrintMode && (
         <>
@@ -133,6 +138,22 @@ export default function CatalogGrid({
   isPrintMode,
 }: CatalogGridProps) {
   const [searchParams] = useSearchParams();
+  const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, product: ProductWithRelations) => {
+    if (isAdmin && !adminMode) {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY, product });
+    }
+  };
+
   const titleRowMap = new Map(data.titleRows.map((t) => [t.MatrixY, t]));
   const emptyCellSet = new Set(data.emptyCells.map((e) => `${e.x},${e.y}`));
   const titleRowsWithProductsSet = new Set(data.titleRowsWithProducts);
@@ -197,7 +218,9 @@ export default function CatalogGrid({
           </div>
           <div className="row g-2 mt-2">
             <div className="col-md-4">
-              <label htmlFor="Winery" className="form-label">Bodega</label>
+              <label htmlFor="Winery" className="form-label">
+                {catalogType === "wines" ? "Bodega" : "Fabricante"}
+              </label>
               <select id="Winery" name="Winery" className="form-select" defaultValue={winery}>
                 <option value="">-- Todas --</option>
                 {data.wineries.map((w) => (
@@ -206,7 +229,9 @@ export default function CatalogGrid({
               </select>
             </div>
             <div className="col-md-4">
-              <label htmlFor="Origin" className="form-label">Denominación de Origen</label>
+              <label htmlFor="Origin" className="form-label">
+                {catalogType === "wines" ? "Denominación de Origen" : "Origen"}
+              </label>
               <select id="Origin" name="Origin" className="form-select" defaultValue={origin}>
                 <option value="">-- Todas --</option>
                 {data.origins.map((o) => (
@@ -309,6 +334,7 @@ export default function CatalogGrid({
                       adminMode={adminMode}
                       isPrintMode={isPrintMode}
                       catalogType={catalogType}
+                      onContextMenu={handleContextMenu}
                     />
                   ) : adminMode && !isPrintMode ? (
                     isEmptyReserved ? (
@@ -349,6 +375,39 @@ export default function CatalogGrid({
           maxAllowedRows={data.maxAllowedRows}
           reservedRows={data.titleRows.map((t) => t.MatrixY)}
           emptyCells={data.emptyCells}
+        />
+      )}
+
+      {isAdmin && !isPrintMode && contextMenu && (
+        <div
+          className="dropdown-menu show"
+          style={{
+             position: "fixed",
+             top: contextMenu.y,
+             left: contextMenu.x,
+             zIndex: 9999,
+          }}
+        >
+          <button
+            className="dropdown-item"
+            type="button"
+            onClick={() => {
+              setEditingProduct(contextMenu.product);
+              setContextMenu(null);
+            }}
+          >
+            <i className="bi bi-pencil-square me-2"></i>
+            Editar producto
+          </button>
+        </div>
+      )}
+
+      {isAdmin && !adminMode && (
+        <ProductEditModal
+          product={editingProduct}
+          categories={data.categories}
+          grapeTypes={data.grapeTypes}
+          onClose={() => setEditingProduct(null)}
         />
       )}
     </>
