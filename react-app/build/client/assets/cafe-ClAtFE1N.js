@@ -1,0 +1,1 @@
+import{w as e,a as o,j as t}from"./chunk-EPOLDU6W-B9w3MOV_.js";import{C as s}from"./CatalogGrid-Dj2wkXGW.js";const d=e(function(){const a=o();return t.jsx(s,{data:a,catalogType:"cafe",title:"Café e Infusiones",isAdmin:a.isAdminUser,adminMode:a.adminMode,isPrintMode:a.isPrintMode})});export{d as default};

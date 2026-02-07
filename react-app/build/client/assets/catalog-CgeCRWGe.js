@@ -1,0 +1,1 @@
+import{w as o,a as t,j as i}from"./chunk-EPOLDU6W-B9w3MOV_.js";import{C as s}from"./CatalogGrid-Dj2wkXGW.js";const d=o(function(){const a=t();return i.jsx(s,{data:a,catalogType:"wines",title:"Catálogo de Vinos",isAdmin:a.isAdminUser,adminMode:a.adminMode,isPrintMode:a.isPrintMode})});export{d as default};
