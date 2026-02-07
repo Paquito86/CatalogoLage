@@ -150,7 +150,7 @@ export default function App() {
       </div>
       <footer className="border-top footer text-muted mt-4 py-3">
         <div className="container">
-          &copy; 2025 Álvaro Díaz para Almacenes Lage
+          &copy; 2026 Álvaro Díaz para Almacenes Lage
         </div>
       </footer>
     </>
