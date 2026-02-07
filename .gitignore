@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Node.js / React Router
+node_modules/
+react-app/node_modules/
+react-app/build/
+react-app/.env
+react-app/generated/
+.env

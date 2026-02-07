@@ -3,11 +3,11 @@ services:
     image: ghcr.io/paquito86/catalogolage:master
     container_name: catalogolage-web
     environment:
-      - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DatabaseConnectionDE28=${ConnString}
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
     ports:
-      - "8085:8080"
+      - "8085:3000"
     restart: unless-stopped
     networks:
       - traefik
@@ -15,19 +15,17 @@ services:
       - "traefik.enable=true"
       # HTTP
       - "traefik.http.routers.catalogolage.entrypoints=web"
-      - "traefik.http.routers.catalogolage.rule=Host(`lage.alphatechs.net`)"
+      - "traefik.http.routers.catalogolage.rule=Host(\`lage.alphatechs.net\`)"
       - "traefik.http.routers.catalogolage.middlewares=catalogolage_https"
       - "traefik.http.middlewares.catalogolage_https.redirectscheme.scheme=https"
       # HTTPS
       - "traefik.http.routers.catalogolage-https.entrypoints=websecure"
-      - "traefik.http.routers.catalogolage-https.rule=Host(`lage.alphatechs.net`)"
+      - "traefik.http.routers.catalogolage-https.rule=Host(\`lage.alphatechs.net\`)"
       - "traefik.http.routers.catalogolage-https.tls=true"
       - "traefik.http.routers.catalogolage-https.tls.certresolver=production"
-      - "traefik.http.services.catalogolage-https.loadbalancer.server.port=8080"
+      - "traefik.http.services.catalogolage-https.loadbalancer.server.port=3000"
       - "traefik.docker.network=traefik"
 
 networks:
   traefik:
     external: true
-
-

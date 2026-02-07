@@ -1,34 +1,22 @@
-# Consulte https://aka.ms/customizecontainer para aprender a personalizar su contenedor de depuración y cómo Visual Studio usa este Dockerfile para compilar sus imágenes para una depuración más rápida.
+# Build stage
+FROM node:22-slim AS build
+WORKDIR /app
+COPY react-app/package*.json ./
+RUN npm ci
+COPY react-app/ .
+RUN npx prisma generate
+RUN npm run build
 
-# Esta fase se usa cuando se ejecuta desde VS en modo rápido (valor predeterminado para la configuración de depuración)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-# Configurar UTF-8 como encoding por defecto
+# Production stage
+FROM node:22-slim AS production
+ENV NODE_ENV=production
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
-# Esta fase se usa para compilar el proyecto de servicio
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-# Configurar UTF-8 también en el contenedor de build
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["CatalogoLage/CatalogoLage.csproj", "CatalogoLage/"]
-RUN dotnet restore "./CatalogoLage/CatalogoLage.csproj"
-COPY . .
-WORKDIR "/src/CatalogoLage"
-RUN dotnet build "./CatalogoLage.csproj" -c $BUILD_CONFIGURATION -o /app/build
-
-# Esta fase se usa para publicar el proyecto de servicio que se copiará en la fase final.
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./CatalogoLage.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# Esta fase se usa en producción o cuando se ejecuta desde VS en modo normal (valor predeterminado cuando no se usa la configuración de depuración)
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "CatalogoLage.dll"]
+COPY --from=build /app/package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/build ./build
+COPY --from=build /app/generated ./generated
+COPY --from=build /app/prisma ./prisma
+EXPOSE 3000
+CMD ["npm", "run", "start"]
