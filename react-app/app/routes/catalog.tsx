@@ -21,6 +21,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     ...data,
     isAdminUser: isAdmin(user),
+    isLoggedIn: !!user,
     adminMode,
     isPrintMode,
   };
@@ -35,6 +36,7 @@ export default function CatalogPage() {
       catalogType="wines"
       title="Catálogo de Vinos"
       isAdmin={data.isAdminUser}
+      isLoggedIn={data.isLoggedIn}
       adminMode={data.adminMode}
       isPrintMode={data.isPrintMode}
     />

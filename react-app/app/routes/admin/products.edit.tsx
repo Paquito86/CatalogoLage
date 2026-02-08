@@ -1,14 +1,16 @@
 import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/auth.server";
+import { serializeProduct } from "~/lib/catalog.server";
 import type { Route } from "./+types/products.edit";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const id = parseInt(params.id, 10);
-  const product = await prisma.product.findUnique({ where: { Id: id } });
-  if (!product) throw new Response("Producto no encontrado", { status: 404 });
+  const rawProduct = await prisma.product.findUnique({ where: { Id: id } });
+  if (!rawProduct) throw new Response("Producto no encontrado", { status: 404 });
+  const product = serializeProduct(rawProduct);
 
   const categories = await prisma.category.findMany({
     orderBy: [{ SortOrder: "asc" }, { Name: "asc" }],
@@ -132,7 +134,7 @@ export default function ProductEdit() {
                   className="form-control"
                   step="0.01"
                   min="0"
-                  defaultValue={product.Price != null ? String(product.Price) : ""}
+                  defaultValue={product.Price != null ? product.Price : ""}
                 />
               </div>
               <div className="col-md-4 mb-3">
@@ -154,7 +156,7 @@ export default function ProductEdit() {
                   className="form-control"
                   step="0.1"
                   min="0"
-                  defaultValue={product.AlcoholPercent != null ? String(product.AlcoholPercent) : ""}
+                  defaultValue={product.AlcoholPercent != null ? product.AlcoholPercent : ""}
                 />
               </div>
             </div>

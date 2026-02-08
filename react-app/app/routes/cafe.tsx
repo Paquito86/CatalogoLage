@@ -21,6 +21,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     ...data,
     isAdminUser: isAdmin(user),
+    isLoggedIn: !!user,
     adminMode,
     isPrintMode,
   };
@@ -35,6 +36,7 @@ export default function CafePage() {
       catalogType="cafe"
       title="Café e Infusiones"
       isAdmin={data.isAdminUser}
+      isLoggedIn={data.isLoggedIn}
       adminMode={data.adminMode}
       isPrintMode={data.isPrintMode}
     />

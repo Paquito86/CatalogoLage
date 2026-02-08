@@ -11,6 +11,7 @@ import {
 
 import type { Route } from "./+types/root";
 import { getUser } from "./lib/auth.server";
+import AgeVerification from "./components/AgeVerification";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -139,7 +140,7 @@ function Navbar() {
 
 export default function App() {
   return (
-    <>
+    <AgeVerification>
       <header>
         <Navbar />
       </header>
@@ -153,7 +154,7 @@ export default function App() {
           &copy; 2026 Álvaro Díaz para Almacenes Lage
         </div>
       </footer>
-    </>
+    </AgeVerification>
   );
 }
 

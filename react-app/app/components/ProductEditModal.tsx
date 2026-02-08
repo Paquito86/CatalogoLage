@@ -19,20 +19,22 @@ export default function ProductEditModal({
   const fetcher = useFetcher();
   const isSubmitting = fetcher.state !== "idle";
   const [isOpen, setIsOpen] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (product) {
       setIsOpen(true);
+      setHasSubmitted(false);
     } else {
       setIsOpen(false);
     }
   }, [product]);
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
+    if (hasSubmitted && fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
       onClose();
     }
-  }, [fetcher.state, fetcher.data, onClose]);
+  }, [hasSubmitted, fetcher.state, fetcher.data, onClose]);
 
   if (!product || !isOpen) return null;
 
@@ -45,7 +47,7 @@ export default function ProductEditModal({
               <h5 className="modal-title">Editar Producto: {product.Name}</h5>
               <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
             </div>
-            <fetcher.Form method="post" action="/api/products/save">
+            <fetcher.Form method="post" action="/api/products/save" onSubmit={() => setHasSubmitted(true)}>
               <div className="modal-body">
                 <input type="hidden" name="Id" value={product.Id} />
                 <div className="row g-3">
@@ -72,11 +74,11 @@ export default function ProductEditModal({
                   </div>
                   <div className="col-md-4">
                     <label htmlFor="Price" className="form-label">Precio</label>
-                    <input type="text" className="form-control" id="Price" name="Price" defaultValue={product.Price?.toString() ?? ""} placeholder="0.00" />
+                    <input type="text" className="form-control" id="Price" name="Price" defaultValue={product.Price != null ? product.Price : ""} placeholder="0.00" />
                   </div>
                   <div className="col-md-4">
                     <label htmlFor="AlcoholPercent" className="form-label">% Alcohol</label>
-                    <input type="text" className="form-control" id="AlcoholPercent" name="AlcoholPercent" defaultValue={product.AlcoholPercent?.toString() ?? ""} />
+                    <input type="text" className="form-control" id="AlcoholPercent" name="AlcoholPercent" defaultValue={product.AlcoholPercent != null ? product.AlcoholPercent : ""} />
                   </div>
                   <div className="col-md-4">
                     <label htmlFor="Size" className="form-label">Tamaño</label>

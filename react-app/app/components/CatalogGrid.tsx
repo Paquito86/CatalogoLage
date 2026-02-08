@@ -8,6 +8,7 @@ interface CatalogGridProps {
   catalogType: CatalogType;
   title: string;
   isAdmin: boolean;
+  isLoggedIn: boolean;
   adminMode: boolean;
   isPrintMode: boolean;
 }
@@ -23,6 +24,7 @@ function ProductCard({
   x,
   y,
   isAdmin,
+  isLoggedIn,
   adminMode,
   isPrintMode,
   catalogType,
@@ -32,6 +34,7 @@ function ProductCard({
   x: number;
   y: number;
   isAdmin: boolean;
+  isLoggedIn: boolean;
   adminMode: boolean;
   isPrintMode: boolean;
   catalogType: CatalogType;
@@ -118,7 +121,7 @@ function ProductCard({
               )}
             </ul>
           )}
-          {product.Price != null && (
+          {product.Price != null && isLoggedIn && (
             <div className={`product-price text-primary fw-bold ${adminMode ? "" : "fs-5"}`}>
               {formatPrice(product.Price)}
             </div>
@@ -134,6 +137,7 @@ export default function CatalogGrid({
   catalogType,
   title,
   isAdmin,
+  isLoggedIn,
   adminMode,
   isPrintMode,
 }: CatalogGridProps) {
@@ -331,6 +335,7 @@ export default function CatalogGrid({
                       x={x}
                       y={y}
                       isAdmin={isAdmin}
+                      isLoggedIn={isLoggedIn}
                       adminMode={adminMode}
                       isPrintMode={isPrintMode}
                       catalogType={catalogType}
@@ -359,6 +364,7 @@ export default function CatalogGrid({
           products={data.unpositionedProducts}
           catalogType={catalogType}
           matrixColumns={data.matrixColumns}
+          isLoggedIn={isLoggedIn}
         />
       )}
 
@@ -541,10 +547,12 @@ function UnpositionedProducts({
   products,
   catalogType,
   matrixColumns,
+  isLoggedIn,
 }: {
   products: ProductWithRelations[];
   catalogType: CatalogType;
   matrixColumns: number;
+  isLoggedIn: boolean;
 }) {
   return (
     <>
@@ -581,7 +589,7 @@ function UnpositionedProducts({
                     {p.Origin && <li><strong>Origen:</strong> {p.Origin}</li>}
                     {p.GrapeType && <li><strong>Tipo de uva:</strong> {p.GrapeType.Name}</li>}
                   </ul>
-                  {p.Price != null && (
+                  {p.Price != null && isLoggedIn && (
                     <div className="product-price text-primary fw-bold">{formatPrice(p.Price)}</div>
                   )}
                 </div>

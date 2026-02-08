@@ -6,6 +6,14 @@ export type CatalogType = "wines" | "spirits" | "cafe";
 type TitleRow = { Id: number; Text: string; MatrixY: number; Level: number };
 type EmptyCell = { X: number; Y: number };
 
+/** Convierte campos Decimal de Prisma a number para serialización cliente */
+export function serializeProduct<T extends Record<string, any>>(product: T): T {
+  return {
+    ...product,
+    Price: product.Price != null ? Number(product.Price) : null,
+  };
+}
+
 interface CatalogConfig {
   sortOrderFilter: (number | null)[];
   matrixXField: "MatrixX" | "MatrixXSpirits" | "MatrixXCafe";
@@ -112,11 +120,12 @@ export async function loadCatalogData(
     productWhere.GrapeTypeId = filters.grapeTypeId;
   }
 
-  const products = await prisma.product.findMany({
+  const rawProducts = await prisma.product.findMany({
     where: productWhere,
     include: { Category: true, GrapeType: true },
     orderBy: { Name: "asc" },
   });
+  const products = rawProducts.map(serializeProduct);
 
   // Load wineries and origins for filters
   const allCatalogProducts = await prisma.product.findMany({
