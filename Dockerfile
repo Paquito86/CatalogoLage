@@ -1,9 +1,9 @@
 # Build stage
 FROM node:22-slim AS build
 WORKDIR /app
-COPY react-app/package*.json ./
+COPY package*.json ./
 RUN npm ci
-COPY react-app/ .
+COPY . .
 RUN npx prisma generate
 RUN npm run build
 
@@ -18,5 +18,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/build ./build
 COPY --from=build /app/generated ./generated
 COPY --from=build /app/prisma ./prisma
+RUN chown -R node:node /app
+USER node
 EXPOSE 3000
 CMD ["npm", "run", "start"]

@@ -1,16 +1,20 @@
 import { redirect } from "react-router";
 import { prisma } from "~/lib/db.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireAdminMutation } from "~/lib/auth.server";
 import type { CatalogType } from "~/lib/catalog.server";
 import type { Route } from "./+types/api.catalog.update-position";
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAdmin(request);
   const catalogType = params.catalogType as CatalogType;
   const form = await request.formData();
+  await requireAdminMutation(request, form);
   const productId = Number(form.get("productId"));
   const x = Number(form.get("x"));
   const y = Number(form.get("y"));
+
+  if (!Number.isInteger(productId) || productId <= 0 || !Number.isInteger(x) || x < 0 || !Number.isInteger(y) || y < 0) {
+    return new Response("Parámetros inválidos", { status: 400 });
+  }
 
   const product = await prisma.product.findUnique({ where: { Id: productId }, include: { Category: true } });
   if (!product) return new Response("Not found", { status: 404 });

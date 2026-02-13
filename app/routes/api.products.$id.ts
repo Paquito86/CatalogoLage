@@ -1,7 +1,9 @@
 import { prisma } from "~/lib/db.server";
+import { requireAdmin } from "~/lib/auth.server";
 import type { Route } from "./+types/api.products.$id";
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
+  await requireAdmin(request);
   const id = Number(params.id);
   if (isNaN(id)) return new Response("Id inválido", { status: 400 });
 

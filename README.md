@@ -99,6 +99,15 @@ Cada producto incluye información detallada:
 
 ---
 
+## 🔐 Seguridad Operativa
+
+- **SESSION_SECRET en producción es obligatorio**: la aplicación falla al arrancar si falta esta variable.
+- **Entorno de desarrollo**: se permite fallback local de sesión para facilitar pruebas, no apto para despliegue.
+- **API privada**: los endpoints bajo `/api/*` requieren sesión de administrador.
+- **Protección CSRF**: las operaciones mutantes validan token CSRF y origen (`Origin/Referer`).
+
+---
+
 ## 🖥️ Interfaz de Usuario
 
 ### 👀 **Experiencia de Visualización**

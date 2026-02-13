@@ -1,13 +1,13 @@
 import { redirect } from "react-router";
 import { prisma } from "~/lib/db.server";
-import { requireAdmin } from "~/lib/auth.server";
+import { requireAdminMutation } from "~/lib/auth.server";
 import type { CatalogType } from "~/lib/catalog.server";
 import type { Route } from "./+types/api.catalog.create-title";
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAdmin(request);
   const catalogType = params.catalogType as CatalogType;
   const form = await request.formData();
+  await requireAdminMutation(request, form);
   const text = String(form.get("text") || "").trim();
   const y = Math.max(0, Number(form.get("y")) || 0);
   let level = Number(form.get("level")) || 2;

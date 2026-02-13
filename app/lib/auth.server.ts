@@ -2,7 +2,18 @@ import { createCookieSessionStorage, redirect } from "react-router";
 import { prisma } from "./db.server";
 import crypto from "crypto";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-in-production";
+function getSessionSecret() {
+  const configuredSecret = process.env.SESSION_SECRET?.trim();
+  if (configuredSecret) return configuredSecret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET is required in production");
+  }
+
+  return "dev-secret-change-in-production";
+}
+
+const SESSION_SECRET = getSessionSecret();
 
 const sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -66,6 +77,56 @@ export async function requireAdmin(request: Request) {
 
 export function isAdmin(user: Awaited<ReturnType<typeof getUser>>) {
   return user?.roles.includes("Admin") ?? false;
+}
+
+export function createCsrfTokenForUserId(userId: string) {
+  return crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(`csrf:${userId}`)
+    .digest("hex");
+}
+
+function parseOrigin(value: string | null) {
+  if (!value) return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function validateSameOrigin(request: Request) {
+  if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") {
+    return;
+  }
+
+  const targetOrigin = new URL(request.url).origin;
+  const origin = parseOrigin(request.headers.get("Origin"));
+  const refererOrigin = parseOrigin(request.headers.get("Referer"));
+
+  if (origin && origin !== targetOrigin) {
+    throw new Response("Origen inválido", { status: 403 });
+  }
+
+  if (!origin && (!refererOrigin || refererOrigin !== targetOrigin)) {
+    throw new Response("Origen inválido", { status: 403 });
+  }
+}
+
+export async function requireAdminMutation(request: Request, formData?: FormData) {
+  const user = await requireAdmin(request);
+  validateSameOrigin(request);
+
+  const tokenFromHeader = request.headers.get("X-CSRF-Token")?.trim() || "";
+  const tokenFromBody = formData ? String(formData.get("_csrf") || "").trim() : "";
+  const token = tokenFromHeader || tokenFromBody;
+  const expected = createCsrfTokenForUserId(user.id);
+
+  if (!token || token !== expected) {
+    throw new Response("CSRF token inválido", { status: 403 });
+  }
+
+  return user;
 }
 
 // ASP.NET Identity compatible password hashing

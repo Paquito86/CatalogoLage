@@ -11,6 +11,7 @@ interface CatalogGridProps {
   isLoggedIn: boolean;
   adminMode: boolean;
   isPrintMode: boolean;
+  csrfToken: string | null;
 }
 
 function formatPrice(price: number | null | undefined | unknown) {
@@ -140,6 +141,7 @@ export default function CatalogGrid({
   isLoggedIn,
   adminMode,
   isPrintMode,
+  csrfToken,
 }: CatalogGridProps) {
   const [searchParams] = useSearchParams();
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
@@ -299,13 +301,13 @@ export default function CatalogGrid({
                     </div>
                     {adminMode && !isPrintMode && (
                       <div className="d-flex align-items-center gap-2">
-                        <TitleEditForm titleRow={titleRow} catalogType={catalogType} />
-                        <DeleteTitleButton titleId={titleRow.Id} catalogType={catalogType} />
+                        <TitleEditForm titleRow={titleRow} catalogType={catalogType} csrfToken={csrfToken} />
+                        <DeleteTitleButton titleId={titleRow.Id} catalogType={catalogType} csrfToken={csrfToken} />
                       </div>
                     )}
                   </div>
                   {adminMode && !isPrintMode && (
-                    <DeleteRowButton y={y} catalogType={catalogType} />
+                    <DeleteRowButton y={y} catalogType={catalogType} csrfToken={csrfToken} />
                   )}
                 </div>
               );
@@ -327,7 +329,7 @@ export default function CatalogGrid({
                   style={{ position: "relative" }}
                 >
                   {x === data.matrixColumns - 1 && adminMode && !isPrintMode && (
-                    <DeleteRowButton y={y} catalogType={catalogType} />
+                    <DeleteRowButton y={y} catalogType={catalogType} csrfToken={csrfToken} />
                   )}
                   {product ? (
                     <ProductCard
@@ -356,7 +358,7 @@ export default function CatalogGrid({
       </div>
 
       {adminMode && !isPrintMode && (
-        <AdminControls data={data} catalogType={catalogType} />
+        <AdminControls data={data} catalogType={catalogType} csrfToken={csrfToken} />
       )}
 
       {adminMode && data.unpositionedProducts.length > 0 && !isPrintMode && (
@@ -369,7 +371,7 @@ export default function CatalogGrid({
       )}
 
       {adminMode && !isPrintMode && (
-        <CreateTitleForm catalogType={catalogType} />
+        <CreateTitleForm catalogType={catalogType} csrfToken={csrfToken} />
       )}
 
       {/* Client-side drag-drop script */}
@@ -381,6 +383,7 @@ export default function CatalogGrid({
           maxAllowedRows={data.maxAllowedRows}
           reservedRows={data.titleRows.map((t) => t.MatrixY)}
           emptyCells={data.emptyCells}
+          csrfToken={csrfToken}
         />
       )}
 
@@ -413,6 +416,7 @@ export default function CatalogGrid({
           product={editingProduct}
           categories={data.categories}
           grapeTypes={data.grapeTypes}
+          csrfToken={csrfToken}
           onClose={() => setEditingProduct(null)}
         />
       )}
@@ -423,9 +427,11 @@ export default function CatalogGrid({
 function TitleEditForm({
   titleRow,
   catalogType,
+  csrfToken,
 }: {
   titleRow: { Id: number; Text: string; MatrixY: number; Level: number };
   catalogType: CatalogType;
+  csrfToken: string | null;
 }) {
   return (
     <form
@@ -434,6 +440,7 @@ function TitleEditForm({
       className="row g-1 align-items-end"
     >
       <div className="col-auto">
+        <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <input type="hidden" name="id" value={titleRow.Id} />
         <input
           name="text"
@@ -467,22 +474,24 @@ function TitleEditForm({
   );
 }
 
-function DeleteTitleButton({ titleId, catalogType }: { titleId: number; catalogType: CatalogType }) {
+function DeleteTitleButton({ titleId, catalogType, csrfToken }: { titleId: number; catalogType: CatalogType; csrfToken: string | null }) {
   return (
     <form
       method="post"
       action={`/api/catalog/${catalogType}/delete-title`}
       onSubmit={(e) => { if (!confirm("¿Eliminar este título?")) e.preventDefault(); }}
     >
+      <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
       <input type="hidden" name="id" value={titleId} />
       <button type="submit" className="btn btn-sm btn-outline-danger">Eliminar</button>
     </form>
   );
 }
 
-function DeleteRowButton({ y, catalogType }: { y: number; catalogType: CatalogType }) {
+function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType: CatalogType; csrfToken: string | null }) {
   return (
     <form method="post" action={`/api/catalog/${catalogType}/delete-row`} className="delete-row-form">
+      <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
       <input type="hidden" name="y" value={y} />
       <button
         type="submit"
@@ -496,7 +505,7 @@ function DeleteRowButton({ y, catalogType }: { y: number; catalogType: CatalogTy
   );
 }
 
-function AdminControls({ data, catalogType }: { data: CatalogData; catalogType: CatalogType }) {
+function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; catalogType: CatalogType; csrfToken: string | null }) {
   return (
     <div className="d-flex justify-content-end mb-4 gap-2">
       <form
@@ -504,6 +513,7 @@ function AdminControls({ data, catalogType }: { data: CatalogData; catalogType: 
         action={`/api/catalog/${catalogType}/insert-row`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
       >
+        <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
           <label className="form-label mb-0 small">Insertar fila en posición</label>
           <input
@@ -524,6 +534,7 @@ function AdminControls({ data, catalogType }: { data: CatalogData; catalogType: 
         action={`/api/catalog/${catalogType}/delete-last-empty-rows`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
       >
+        <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
           <label className="form-label mb-0 small">Borrar últimas filas vacías</label>
           <input
@@ -602,7 +613,7 @@ function UnpositionedProducts({
   );
 }
 
-function CreateTitleForm({ catalogType }: { catalogType: CatalogType }) {
+function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType; csrfToken: string | null }) {
   return (
     <div className="card mb-4">
       <div className="card-body">
@@ -612,6 +623,7 @@ function CreateTitleForm({ catalogType }: { catalogType: CatalogType }) {
           action={`/api/catalog/${catalogType}/create-title`}
           className="row g-2 align-items-end"
         >
+          <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
           <div className="col-md-4">
             <label className="form-label">Texto</label>
             <input name="text" className="form-control form-control-sm" required />
@@ -643,6 +655,7 @@ function CatalogDragDropScript({
   maxAllowedRows,
   reservedRows,
   emptyCells,
+  csrfToken,
 }: {
   catalogType: CatalogType;
   matrixRows: number;
@@ -650,10 +663,12 @@ function CatalogDragDropScript({
   maxAllowedRows: number;
   reservedRows: number[];
   emptyCells: { x: number; y: number }[];
+  csrfToken: string | null;
 }) {
   const scriptContent = `
     (function(){
       const catalogType = ${JSON.stringify(catalogType)};
+      const csrfToken = ${JSON.stringify(csrfToken)};
       const matrixRows = ${matrixRows};
       const matrixColumns = ${matrixColumns};
       const allowedRows = ${maxAllowedRows};
@@ -805,10 +820,11 @@ function CatalogDragDropScript({
       async function updateProductPosition(productId, x, y) {
         try {
           const fd = new FormData();
+          fd.append('_csrf', csrfToken || '');
           fd.append('productId', productId);
           fd.append('x', x);
           fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/update-position', { method: 'POST', body: fd });
+          const resp = await fetch('/api/catalog/' + catalogType + '/update-position', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
           if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
         } catch (err) { console.error(err); alert('Error al actualizar posición'); }
       }
@@ -816,10 +832,11 @@ function CatalogDragDropScript({
       async function vaciarCelda(productId, x, y) {
         try {
           const fd = new FormData();
+          fd.append('_csrf', csrfToken || '');
           fd.append('productId', productId);
           fd.append('x', x);
           fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/vaciar-celda', { method: 'POST', body: fd });
+          const resp = await fetch('/api/catalog/' + catalogType + '/vaciar-celda', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
           if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
         } catch (err) { console.error(err); alert('Error al reservar celda'); }
       }
@@ -827,10 +844,11 @@ function CatalogDragDropScript({
       async function placeUnassigned(productId, x, y) {
         try {
           const fd = new FormData();
+          fd.append('_csrf', csrfToken || '');
           fd.append('productId', productId);
           fd.append('x', x);
           fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/place-unassigned', { method: 'POST', body: fd });
+          const resp = await fetch('/api/catalog/' + catalogType + '/place-unassigned', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
           if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
         } catch (err) { console.error(err); alert('Error al asignar posición'); }
       }

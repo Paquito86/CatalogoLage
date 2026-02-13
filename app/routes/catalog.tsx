@@ -1,8 +1,8 @@
 import { useLoaderData } from "react-router";
 import { loadCatalogData } from "~/lib/catalog.server";
-import { getUser, isAdmin } from "~/lib/auth.server";
+import { createCsrfTokenForUserId, getUser, isAdmin } from "~/lib/auth.server";
 import CatalogGrid from "~/components/CatalogGrid";
-import type { Route } from "./+types/cafe";
+import type { Route } from "./+types/catalog";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -10,7 +10,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const adminMode = url.searchParams.get("AdminMode") === "true" && isAdmin(user);
   const isPrintMode = url.searchParams.get("Print") === "true" && isAdmin(user);
 
-  const data = await loadCatalogData("cafe", {
+  const data = await loadCatalogData("wines", {
     query: url.searchParams.get("Query") || undefined,
     categoryId: url.searchParams.get("categoryId") ? Number(url.searchParams.get("categoryId")) : undefined,
     winery: url.searchParams.get("Winery") || undefined,
@@ -24,21 +24,23 @@ export async function loader({ request }: Route.LoaderArgs) {
     isLoggedIn: !!user,
     adminMode,
     isPrintMode,
+    csrfToken: user ? createCsrfTokenForUserId(user.id) : null,
   };
 }
 
-export default function CafePage() {
+export default function CatalogPage() {
   const data = useLoaderData<typeof loader>();
 
   return (
     <CatalogGrid
       data={data as any}
-      catalogType="cafe"
-      title="Café e Infusiones"
+      catalogType="wines"
+      title="Catálogo de Vinos"
       isAdmin={data.isAdminUser}
       isLoggedIn={data.isLoggedIn}
       adminMode={data.adminMode}
       isPrintMode={data.isPrintMode}
+      csrfToken={data.csrfToken}
     />
   );
 }

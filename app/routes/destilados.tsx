@@ -1,6 +1,6 @@
 import { useLoaderData } from "react-router";
 import { loadCatalogData } from "~/lib/catalog.server";
-import { getUser, isAdmin } from "~/lib/auth.server";
+import { createCsrfTokenForUserId, getUser, isAdmin } from "~/lib/auth.server";
 import CatalogGrid from "~/components/CatalogGrid";
 import type { Route } from "./+types/destilados";
 
@@ -24,6 +24,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     isLoggedIn: !!user,
     adminMode,
     isPrintMode,
+    csrfToken: user ? createCsrfTokenForUserId(user.id) : null,
   };
 }
 
@@ -39,6 +40,7 @@ export default function DestiladosPage() {
       isLoggedIn={data.isLoggedIn}
       adminMode={data.adminMode}
       isPrintMode={data.isPrintMode}
+      csrfToken={data.csrfToken}
     />
   );
 }

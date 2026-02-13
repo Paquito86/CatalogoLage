@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import type { Category, GrapeType } from "~/generated/prisma";
 import type { ProductWithRelations } from "~/lib/catalog.server";
+
+type CategoryOption = { Id: number; Name: string };
+type GrapeTypeOption = { Id: number; Name: string };
 
 interface ProductEditModalProps {
   product: ProductWithRelations | null;
-  categories: Category[];
-  grapeTypes: GrapeType[];
+  categories: CategoryOption[];
+  grapeTypes: GrapeTypeOption[];
+  csrfToken: string | null;
   onClose: () => void;
 }
 
@@ -14,6 +17,7 @@ export default function ProductEditModal({
   product,
   categories,
   grapeTypes,
+  csrfToken,
   onClose,
 }: ProductEditModalProps) {
   const fetcher = useFetcher();
@@ -49,6 +53,7 @@ export default function ProductEditModal({
             </div>
             <fetcher.Form method="post" action="/api/products/save" onSubmit={() => setHasSubmitted(true)}>
               <div className="modal-body">
+                <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
                 <input type="hidden" name="Id" value={product.Id} />
                 <div className="row g-3">
                   <div className="col-md-8">
@@ -74,7 +79,7 @@ export default function ProductEditModal({
                   </div>
                   <div className="col-md-4">
                     <label htmlFor="Price" className="form-label">Precio</label>
-                    <input type="text" className="form-control" id="Price" name="Price" defaultValue={product.Price != null ? product.Price : ""} placeholder="0.00" />
+                    <input type="text" className="form-control" id="Price" name="Price" defaultValue={product.Price != null ? String(product.Price) : ""} placeholder="0.00" />
                   </div>
                   <div className="col-md-4">
                     <label htmlFor="AlcoholPercent" className="form-label">% Alcohol</label>

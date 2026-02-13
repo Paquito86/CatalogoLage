@@ -10,7 +10,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import { getUser } from "./lib/auth.server";
+import { createCsrfTokenForUserId, getUser } from "./lib/auth.server";
 import AgeVerification from "./components/AgeVerification";
 import "./app.css";
 
@@ -37,7 +37,17 @@ export const links: Route.LinksFunction = () => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
-  return { user };
+  const csrfToken = user ? createCsrfTokenForUserId(user.id) : null;
+  return { user, csrfToken };
+}
+
+export function headers() {
+  return {
+    "Content-Security-Policy": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+  };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
