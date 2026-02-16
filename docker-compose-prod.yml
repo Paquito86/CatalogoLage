@@ -15,12 +15,12 @@ services:
       - "traefik.enable=true"
       # HTTP
       - "traefik.http.routers.catalogolage.entrypoints=web"
-      - "traefik.http.routers.catalogolage.rule=Host(\`lage.alphatechs.net\`)"
+      - "traefik.http.routers.catalogolage.rule=Host(`lage.alphatechs.net`)"
       - "traefik.http.routers.catalogolage.middlewares=catalogolage_https"
       - "traefik.http.middlewares.catalogolage_https.redirectscheme.scheme=https"
       # HTTPS
       - "traefik.http.routers.catalogolage-https.entrypoints=websecure"
-      - "traefik.http.routers.catalogolage-https.rule=Host(\`lage.alphatechs.net\`)"
+      - "traefik.http.routers.catalogolage-https.rule=Host(`lage.alphatechs.net`)"
       - "traefik.http.routers.catalogolage-https.tls=true"
       - "traefik.http.routers.catalogolage-https.tls.certresolver=production"
       - "traefik.http.services.catalogolage-https.loadbalancer.server.port=3000"
