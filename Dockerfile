@@ -15,8 +15,9 @@ ENV LC_ALL=C.UTF-8
 WORKDIR /app
 COPY --from=build /app/package*.json ./
 RUN npm ci --omit=dev
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=build /app/build ./build
-COPY --from=build /app/generated ./generated
 COPY --from=build /app/prisma ./prisma
 RUN chown -R node:node /app
 USER node
