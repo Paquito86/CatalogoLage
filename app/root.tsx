@@ -109,6 +109,9 @@ function Navbar() {
             <li className="nav-item">
               <NavLink className="nav-link text-dark" to="/cafe">Café e Infusiones</NavLink>
             </li>
+            <li className="nav-item">
+              <NavLink className="nav-link text-dark" to="/agua-cerveza">Agua y Cerveza</NavLink>
+            </li>
             {isAdminUser && (
               <li className="nav-item dropdown">
                 <a

@@ -7,6 +7,7 @@ export default [
   route("catalog", "routes/catalog.tsx"),
   route("destilados", "routes/destilados.tsx"),
   route("cafe", "routes/cafe.tsx"),
+  route("agua-cerveza", "routes/agua-cerveza.tsx"),
 
   // API routes
   route("api/lookups/categories", "routes/api.lookups.categories.ts"),

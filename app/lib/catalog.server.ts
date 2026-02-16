@@ -1,7 +1,7 @@
 import { prisma } from "./db.server";
-import type { Product, Category, GrapeType } from "../../generated/prisma";
+import type { Product, Category, GrapeType } from "@prisma/client";
 
-export type CatalogType = "wines" | "spirits" | "cafe";
+export type CatalogType = "wines" | "spirits" | "cafe" | "aguacerveza";
 
 type TitleRow = { Id: number; Text: string; MatrixY: number; Level: number };
 type EmptyCell = { X: number; Y: number };
@@ -16,8 +16,8 @@ export function serializeProduct<T extends Record<string, any>>(product: T): T {
 
 interface CatalogConfig {
   sortOrderFilter: (number | null)[];
-  matrixXField: "MatrixX" | "MatrixXSpirits" | "MatrixXCafe";
-  matrixYField: "MatrixY" | "MatrixYSpirits" | "MatrixYCafe";
+  matrixXField: "MatrixX" | "MatrixXSpirits" | "MatrixXCafe" | "MatrixXAguaCerveza";
+  matrixYField: "MatrixY" | "MatrixYSpirits" | "MatrixYCafe" | "MatrixYAguaCerveza";
 }
 
 const configs: Record<CatalogType, CatalogConfig> = {
@@ -35,6 +35,11 @@ const configs: Record<CatalogType, CatalogConfig> = {
     sortOrderFilter: [3],
     matrixXField: "MatrixXCafe",
     matrixYField: "MatrixYCafe",
+  },
+  aguacerveza: {
+    sortOrderFilter: [4],
+    matrixXField: "MatrixXAguaCerveza",
+    matrixYField: "MatrixYAguaCerveza",
   },
 };
 
@@ -146,9 +151,12 @@ export async function loadCatalogData(
   } else if (catalogType === "spirits") {
     titleRows = await prisma.catalogSpiritsTitleRow.findMany({ orderBy: { MatrixY: "asc" } });
     emptyCellRecords = await prisma.catalogSpiritsEmptyCell.findMany();
-  } else {
+  } else if (catalogType === "cafe") {
     titleRows = await prisma.catalogCafeTitleRow.findMany({ orderBy: { MatrixY: "asc" } });
     emptyCellRecords = await prisma.catalogCafeEmptyCell.findMany();
+  } else {
+    titleRows = await prisma.catalogAguaCervezaTitleRow.findMany({ orderBy: { MatrixY: "asc" } });
+    emptyCellRecords = await prisma.catalogAguaCervezaEmptyCell.findMany();
   }
 
   const emptyCells = emptyCellRecords.map((e) => ({ x: e.X, y: e.Y }));

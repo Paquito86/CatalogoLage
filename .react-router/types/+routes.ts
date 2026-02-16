@@ -29,6 +29,9 @@ type Pages = {
   "/cafe": {
     params: {};
   };
+  "/agua-cerveza": {
+    params: {};
+  };
   "/api/lookups/categories": {
     params: {};
   };
@@ -141,7 +144,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/login" | "/logout" | "/catalog" | "/destilados" | "/cafe" | "/api/lookups/categories" | "/api/lookups/grapes" | "/api/products/:id" | "/api/products/save" | "/api/catalog/:catalogType/update-position" | "/api/catalog/:catalogType/vaciar-celda" | "/api/catalog/:catalogType/create-title" | "/api/catalog/:catalogType/update-title" | "/api/catalog/:catalogType/delete-title" | "/api/catalog/:catalogType/insert-row" | "/api/catalog/:catalogType/delete-row" | "/api/catalog/:catalogType/delete-last-empty-rows" | "/api/catalog/:catalogType/place-unassigned" | "/admin/products" | "/admin/products/create" | "/admin/products/:id/edit" | "/admin/products/:id/delete" | "/admin/categories" | "/admin/categories/create" | "/admin/categories/:id/edit" | "/admin/categories/:id/delete" | "/admin/grape-types" | "/admin/grape-types/create" | "/admin/grape-types/:id/edit" | "/admin/grape-types/:id/delete";
+    page: "/" | "/login" | "/logout" | "/catalog" | "/destilados" | "/cafe" | "/agua-cerveza" | "/api/lookups/categories" | "/api/lookups/grapes" | "/api/products/:id" | "/api/products/save" | "/api/catalog/:catalogType/update-position" | "/api/catalog/:catalogType/vaciar-celda" | "/api/catalog/:catalogType/create-title" | "/api/catalog/:catalogType/update-title" | "/api/catalog/:catalogType/delete-title" | "/api/catalog/:catalogType/insert-row" | "/api/catalog/:catalogType/delete-row" | "/api/catalog/:catalogType/delete-last-empty-rows" | "/api/catalog/:catalogType/place-unassigned" | "/admin/products" | "/admin/products/create" | "/admin/products/:id/edit" | "/admin/products/:id/delete" | "/admin/categories" | "/admin/categories/create" | "/admin/categories/:id/edit" | "/admin/categories/:id/delete" | "/admin/grape-types" | "/admin/grape-types/create" | "/admin/grape-types/:id/edit" | "/admin/grape-types/:id/delete";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -166,6 +169,10 @@ type RouteFiles = {
   "routes/cafe.tsx": {
     id: "routes/cafe";
     page: "/cafe";
+  };
+  "routes/agua-cerveza.tsx": {
+    id: "routes/agua-cerveza";
+    page: "/agua-cerveza";
   };
   "routes/api.lookups.categories.ts": {
     id: "routes/api.lookups.categories";
@@ -277,6 +284,7 @@ type RouteModules = {
   "routes/catalog": typeof import("./app/routes/catalog.tsx");
   "routes/destilados": typeof import("./app/routes/destilados.tsx");
   "routes/cafe": typeof import("./app/routes/cafe.tsx");
+  "routes/agua-cerveza": typeof import("./app/routes/agua-cerveza.tsx");
   "routes/api.lookups.categories": typeof import("./app/routes/api.lookups.categories.ts");
   "routes/api.lookups.grapes": typeof import("./app/routes/api.lookups.grapes.ts");
   "routes/api.products.$id": typeof import("./app/routes/api.products.$id.ts");

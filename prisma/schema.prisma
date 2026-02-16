@@ -33,6 +33,10 @@ model Product {
   MatrixXCafe Int?
   MatrixYCafe Int?
 
+  // Water & Beer matrix coordinates
+  MatrixXAguaCerveza Int?
+  MatrixYAguaCerveza Int?
+
   Category  Category   @relation(fields: [CategoryId], references: [Id], onDelete: Cascade)
   GrapeType GrapeType? @relation(fields: [GrapeTypeId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -110,6 +114,24 @@ model CatalogCafeEmptyCell {
 
   @@unique([X, Y])
   @@map("CatalogCafeEmptyCells")
+}
+
+model CatalogAguaCervezaTitleRow {
+  Id      Int    @id @default(autoincrement())
+  Text    String @db.NVarChar(200)
+  MatrixY Int    @unique
+  Level   Int    @default(2)
+
+  @@map("CatalogAguaCervezaTitleRows")
+}
+
+model CatalogAguaCervezaEmptyCell {
+  Id Int @id @default(autoincrement())
+  X  Int
+  Y  Int
+
+  @@unique([X, Y])
+  @@map("CatalogAguaCervezaEmptyCells")
 }
 
 // ASP.NET Identity tables (read-only from React app for authentication)

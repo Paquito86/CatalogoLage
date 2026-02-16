@@ -365,4 +365,6 @@ FodyWeavers.xsd
 node_modules/
 build/
 generated/
+.react-router/
+.vite/
 .env
