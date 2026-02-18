@@ -146,6 +146,7 @@ export default function CatalogGrid({
   const [searchParams] = useSearchParams();
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
+  const [modalOpenCount, setModalOpenCount] = useState(0);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -424,6 +425,7 @@ export default function CatalogGrid({
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingProduct(contextMenu.product);
+                setModalOpenCount(prev => prev + 1);
                 setContextMenu(null);
               }}
             >
@@ -436,6 +438,7 @@ export default function CatalogGrid({
 
       {isAdmin && !adminMode && (
         <ProductEditModal
+          key={modalOpenCount}
           product={editingProduct}
           categories={data.categories}
           grapeTypes={data.grapeTypes}
