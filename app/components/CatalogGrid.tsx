@@ -160,6 +160,19 @@ export default function CatalogGrid({
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  // Restaurar posición del scroll después de recargar
+  useEffect(() => {
+    const savedPosition = sessionStorage.getItem('catalog-scroll-position');
+    if (savedPosition) {
+      const position = parseInt(savedPosition, 10);
+      // Usar requestAnimationFrame para asegurar que el DOM esté completamente renderizado
+      requestAnimationFrame(() => {
+        window.scrollTo(0, position);
+        sessionStorage.removeItem('catalog-scroll-position');
+      });
+    }
+  }, []);
+
   const handleContextMenu = (e: React.MouseEvent, product: ProductWithRelations) => {
     if (isAdmin && !adminMode) {
       e.preventDefault();
@@ -275,7 +288,7 @@ export default function CatalogGrid({
             const titleRow = titleRowMap.get(y);
             if (titleRow) {
               const showTitle = !data.isFiltered || titleRowsWithProductsSet.has(y);
-              return (
+              return [
                 <div
                   key={`title-${y}`}
                   className={`matrix-title-row section-row ${showTitle ? "" : "no-products"}`}
@@ -317,7 +330,7 @@ export default function CatalogGrid({
                     <DeleteRowButton y={y} catalogType={catalogType} csrfToken={csrfToken} />
                   )}
                 </div>
-              );
+              ];
             }
 
             return Array.from({ length: data.matrixColumns }, (_, x) => {
@@ -443,11 +456,16 @@ function TitleEditForm({
   catalogType: CatalogType;
   csrfToken: string | null;
 }) {
+  const handleSubmit = () => {
+    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+  };
+  
   return (
     <form
       method="post"
       action={`/api/catalog/${catalogType}/update-title`}
       className="row g-1 align-items-end"
+      onSubmit={handleSubmit}
     >
       <div className="col-auto">
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
@@ -485,11 +503,19 @@ function TitleEditForm({
 }
 
 function DeleteTitleButton({ titleId, catalogType, csrfToken }: { titleId: number; catalogType: CatalogType; csrfToken: string | null }) {
+  const handleSubmit = (e: React.FormEvent) => {
+    if (!confirm("¿Eliminar este título?")) {
+      e.preventDefault();
+    } else {
+      sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+    }
+  };
+  
   return (
     <form
       method="post"
       action={`/api/catalog/${catalogType}/delete-title`}
-      onSubmit={(e) => { if (!confirm("¿Eliminar este título?")) e.preventDefault(); }}
+      onSubmit={handleSubmit}
     >
       <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
       <input type="hidden" name="id" value={titleId} />
@@ -499,6 +525,14 @@ function DeleteTitleButton({ titleId, catalogType, csrfToken }: { titleId: numbe
 }
 
 function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType: CatalogType; csrfToken: string | null }) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (!confirm("¿Eliminar esta fila? Se desplazarán hacia arriba las filas inferiores.")) {
+      e.preventDefault();
+    } else {
+      sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+    }
+  };
+  
   return (
     <form method="post" action={`/api/catalog/${catalogType}/delete-row`} className="delete-row-form">
       <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
@@ -507,7 +541,7 @@ function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType
         type="submit"
         className="btn btn-sm btn-danger delete-row-btn"
         title="Eliminar fila"
-        onClick={(e) => { if (!confirm("¿Eliminar esta fila? Se desplazarán hacia arriba las filas inferiores.")) e.preventDefault(); }}
+        onClick={handleClick}
       >
         ✖
       </button>
@@ -516,12 +550,17 @@ function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType
 }
 
 function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; catalogType: CatalogType; csrfToken: string | null }) {
+  const handleFormSubmit = () => {
+    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+  };
+  
   return (
     <div className="d-flex justify-content-end mb-4 gap-2">
       <form
         method="post"
         action={`/api/catalog/${catalogType}/insert-row`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
+        onSubmit={handleFormSubmit}
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
@@ -543,6 +582,7 @@ function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; ca
         method="post"
         action={`/api/catalog/${catalogType}/delete-last-empty-rows`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
+        onSubmit={handleFormSubmit}
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
@@ -624,6 +664,10 @@ function UnpositionedProducts({
 }
 
 function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType; csrfToken: string | null }) {
+  const handleSubmit = () => {
+    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+  };
+  
   return (
     <div className="card mb-4">
       <div className="card-body">
@@ -632,6 +676,7 @@ function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType;
           method="post"
           action={`/api/catalog/${catalogType}/create-title`}
           className="row g-2 align-items-end"
+          onSubmit={handleSubmit}
         >
           <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
           <div className="col-md-4">
@@ -675,195 +720,302 @@ function CatalogDragDropScript({
   emptyCells: { x: number; y: number }[];
   csrfToken: string | null;
 }) {
-  const scriptContent = `
-    (function(){
-      const catalogType = ${JSON.stringify(catalogType)};
-      const csrfToken = ${JSON.stringify(csrfToken)};
-      const matrixRows = ${matrixRows};
-      const matrixColumns = ${matrixColumns};
-      const allowedRows = ${maxAllowedRows};
-      const reservedRows = new Set(${JSON.stringify(reservedRows)});
-      const emptyReserved = new Set(${JSON.stringify(emptyCells.map((e) => e.x + ":" + e.y))});
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const allowedRows = maxAllowedRows;
+    const reservedRowsSet = new Set(reservedRows);
+    const emptyReserved = new Set(emptyCells.map((e) => `${e.x}:${e.y}`));
 
-      const dropCells = [...document.querySelectorAll('.matrix-cell.editable')].filter(c =>
-        !reservedRows.has(parseInt(c.dataset.y)) && parseInt(c.dataset.y) < allowedRows
-      );
-      let autoScrollInterval = null;
-      const scrollEdgeSize = 60;
-      const scrollSpeed = 12;
+    const dropCells = [...document.querySelectorAll('.matrix-cell.editable')].filter(c => {
+      const cell = c as HTMLElement;
+      return !reservedRowsSet.has(parseInt(cell.dataset.y || '0')) && parseInt(cell.dataset.y || '0') < allowedRows;
+    });
+    
+    if (isDev) {
+      console.log('[Drag&Drop] Inicializando...');
+      console.log('[Drag&Drop] Celdas editables encontradas:', document.querySelectorAll('.matrix-cell.editable').length);
+      console.log('[Drag&Drop] Celdas de drop disponibles (después de filtrar):', dropCells.length);
+      console.log('[Drag&Drop] Filas reservadas:', [...reservedRowsSet]);
+      console.log('[Drag&Drop] Máximo de filas permitidas:', allowedRows);
+    }
+    
+    let autoScrollInterval: number | null = null;
+    const scrollEdgeSize = 60;
+    const scrollSpeed = 12;
 
-      // Section collapse
-      const sectionRows = [...document.querySelectorAll('.matrix-title-row.section-row')].sort((a,b) => parseInt(a.dataset.y) - parseInt(b.dataset.y));
-      const allMatrixCells = [...document.querySelectorAll('.matrix-cell')];
-      const storageKey = 'matrix-collapse:' + location.pathname;
-      let collapsedSet = new Set();
-      try { const saved = JSON.parse(localStorage.getItem(storageKey) || '[]'); if (Array.isArray(saved)) collapsedSet = new Set(saved.map(v => parseInt(v,10)).filter(v => !Number.isNaN(v))); } catch {}
-
-      function getSectionRange(row) {
-        const yStart = parseInt(row.dataset.y);
-        const level = parseInt(row.dataset.level || '2');
-        if (level === 1) {
-          const nextH1 = sectionRows.find(r => parseInt(r.dataset.y) > yStart && parseInt(r.dataset.level || '2') === 1);
-          return { yStart, yEnd: nextH1 ? parseInt(nextH1.dataset.y) - 1 : matrixRows - 1 };
-        }
-        const idx = sectionRows.indexOf(row);
-        const next = idx >= 0 && idx + 1 < sectionRows.length ? sectionRows[idx + 1] : null;
-        return { yStart, yEnd: next ? parseInt(next.dataset.y) - 1 : matrixRows - 1 };
+    // Section collapse
+    const sectionRows = [...document.querySelectorAll<HTMLElement>('.matrix-title-row.section-row')].sort((a, b) => {
+      return parseInt(a.dataset.y || '0') - parseInt(b.dataset.y || '0');
+    });
+    const allMatrixCells = [...document.querySelectorAll<HTMLElement>('.matrix-cell')];
+    const storageKey = 'matrix-collapse:' + location.pathname;
+    let collapsedSet = new Set<number>();
+    
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (Array.isArray(saved)) {
+        collapsedSet = new Set(saved.map(v => parseInt(v, 10)).filter(v => !Number.isNaN(v)));
       }
+    } catch {}
 
-      function setSectionCollapsed(row, collapsed) {
-        const icon = row.querySelector('.toggle-section i');
-        if (icon) { icon.classList.toggle('bi-chevron-up', !collapsed); icon.classList.toggle('bi-chevron-down', collapsed); }
-        const { yStart, yEnd } = getSectionRange(row);
-        allMatrixCells.forEach(c => {
-          const y = parseInt(c.dataset.y);
-          if (!Number.isNaN(y) && y > yStart && y <= yEnd) c.classList.toggle('hidden-by-section', collapsed);
-        });
-        if (parseInt(row.dataset.level || '2') === 1) {
-          sectionRows.forEach(sr => {
-            const y = parseInt(sr.dataset.y);
-            if (y > yStart && y <= yEnd) {
-              const icon = sr.querySelector('.toggle-section i');
-              if (icon) { icon.classList.toggle('bi-chevron-down', collapsed); icon.classList.toggle('bi-chevron-up', !collapsed); }
-              sr.classList.toggle('section-collapsed', collapsed);
+    function getSectionRange(row: HTMLElement) {
+      const yStart = parseInt(row.dataset.y || '0');
+      const level = parseInt(row.dataset.level || '2');
+      if (level === 1) {
+        const nextH1 = sectionRows.find(r => parseInt(r.dataset.y || '0') > yStart && parseInt(r.dataset.level || '2') === 1);
+        return { yStart, yEnd: nextH1 ? parseInt(nextH1.dataset.y || '0') - 1 : matrixRows - 1 };
+      }
+      const idx = sectionRows.indexOf(row);
+      const next = idx >= 0 && idx + 1 < sectionRows.length ? sectionRows[idx + 1] : null;
+      return { yStart, yEnd: next ? parseInt(next.dataset.y || '0') - 1 : matrixRows - 1 };
+    }
+
+    function setSectionCollapsed(row: HTMLElement, collapsed: boolean) {
+      const icon = row.querySelector('.toggle-section i');
+      if (icon) {
+        icon.classList.toggle('bi-chevron-up', !collapsed);
+        icon.classList.toggle('bi-chevron-down', collapsed);
+      }
+      const { yStart, yEnd } = getSectionRange(row);
+      allMatrixCells.forEach(c => {
+        const y = parseInt(c.dataset.y || '0');
+        if (!Number.isNaN(y) && y > yStart && y <= yEnd) {
+          c.classList.toggle('hidden-by-section', collapsed);
+        }
+      });
+      if (parseInt(row.dataset.level || '2') === 1) {
+        sectionRows.forEach(sr => {
+          const y = parseInt(sr.dataset.y || '0');
+          if (y > yStart && y <= yEnd) {
+            const icon = sr.querySelector('.toggle-section i');
+            if (icon) {
+              icon.classList.toggle('bi-chevron-down', collapsed);
+              icon.classList.toggle('bi-chevron-up', !collapsed);
             }
+            sr.classList.toggle('section-collapsed', collapsed);
+          }
+        });
+      }
+    }
+
+    sectionRows.forEach(row => {
+      const y = parseInt(row.dataset.y || '0');
+      if (collapsedSet.has(y)) {
+        row.classList.add('section-collapsed');
+        setSectionCollapsed(row, true);
+      }
+    });
+
+    const toggleButtons = document.querySelectorAll<HTMLElement>('.toggle-section');
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const row = this.closest<HTMLElement>('.section-row');
+        if (!row) return;
+        const collapsed = row.classList.toggle('section-collapsed');
+        setSectionCollapsed(row, collapsed);
+        const y = parseInt(row.dataset.y || '0');
+        if (!Number.isNaN(y)) {
+          if (collapsed) collapsedSet.add(y);
+          else collapsedSet.delete(y);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify([...collapsedSet]));
+          } catch {}
+        }
+      });
+    });
+
+    // Drag & drop
+    const dragAreas = document.querySelectorAll<HTMLElement>('.drag-area');
+    dragAreas.forEach(dragArea => {
+      const productCard = dragArea.closest<HTMLElement>('.card');
+      const productId = dragArea.dataset.productId || productCard?.dataset.productId;
+      if (!productId) return;
+
+      dragArea.addEventListener('dragstart', function(e: DragEvent) {
+        e.stopPropagation();
+        dragArea.classList.add('dragging');
+        productCard?.classList.add('being-dragged');
+        e.dataTransfer?.setData('text/plain', productId);
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+        if (isDev) console.log('[Drag&Drop] Arrastrando producto:', productId);
+      });
+      
+      dragArea.addEventListener('dragend', function() {
+        dragArea.classList.remove('dragging');
+        productCard?.classList.remove('being-dragged');
+        dropCells.forEach(c => (c as HTMLElement).classList.remove('drag-over'));
+        stopAutoScroll();
+        if (isDev) console.log('[Drag&Drop] Drag finalizado');
+      });
+    });
+    
+    if (isDev) {
+      console.log('[Drag&Drop] Áreas arrastrables encontradas:', document.querySelectorAll('.drag-area').length);
+    }
+
+    dropCells.forEach(cell => {
+      const cellElement = cell as HTMLElement;
+      
+      cellElement.addEventListener('dragover', function(e: DragEvent) {
+        const y = parseInt(cellElement.dataset.y || '0');
+        if (y >= allowedRows) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        cellElement.classList.add('drag-over');
+        handleAutoScroll(e.clientY);
+      });
+      
+      cellElement.addEventListener('dragleave', function(e: DragEvent) {
+        if (!cellElement.contains(e.relatedTarget as Node)) {
+          cellElement.classList.remove('drag-over');
+        }
+      });
+      
+      cellElement.addEventListener('drop', function(e: DragEvent) {
+        e.preventDefault();
+        cellElement.classList.remove('drag-over');
+        stopAutoScroll();
+        const productId = e.dataTransfer?.getData('text/plain') || '';
+        const x = parseInt(cellElement.dataset.x || '0');
+        const y = parseInt(cellElement.dataset.y || '0');
+        if (isDev) console.log('[Drag&Drop] Drop detectado en:', { productId, x, y });
+        if (x >= 0 && x < matrixColumns && y >= 0 && y < matrixRows && y < allowedRows && !reservedRowsSet.has(y)) {
+          updateProductPosition(productId, x, y);
+        } else if (isDev) {
+          console.log('[Drag&Drop] Drop rechazado. Validación falló:', {
+            validX: x >= 0 && x < matrixColumns,
+            validY: y >= 0 && y < matrixRows,
+            belowAllowed: y < allowedRows,
+            notReserved: !reservedRowsSet.has(y)
           });
         }
-      }
-
-      sectionRows.forEach(row => {
-        const y = parseInt(row.dataset.y);
-        if (collapsedSet.has(y)) { row.classList.add('section-collapsed'); setSectionCollapsed(row, true); }
       });
+    });
+    
+    if (isDev) {
+      console.log('[Drag&Drop] Event listeners registrados en', dropCells.length, 'celdas');
+    }
 
-      document.querySelectorAll('.toggle-section').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const row = this.closest('.section-row');
-          const collapsed = row.classList.toggle('section-collapsed');
-          setSectionCollapsed(row, collapsed);
-          const y = parseInt(row.dataset.y);
-          if (!Number.isNaN(y)) {
-            if (collapsed) collapsedSet.add(y); else collapsedSet.delete(y);
-            try { localStorage.setItem(storageKey, JSON.stringify([...collapsedSet])); } catch {}
-          }
-        });
-      });
-
-      // Drag & drop
-      document.querySelectorAll('.drag-area').forEach(dragArea => {
-        const productCard = dragArea.closest('.card');
-        const productId = dragArea.dataset.productId || productCard?.dataset.productId;
-        if (!productId) return;
-
-        dragArea.addEventListener('dragstart', function(e) {
-          e.stopPropagation();
-          this.classList.add('dragging');
-          productCard?.classList.add('being-dragged');
-          e.dataTransfer.setData('text/plain', productId);
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        dragArea.addEventListener('dragend', function() {
-          this.classList.remove('dragging');
-          productCard?.classList.remove('being-dragged');
-          dropCells.forEach(c => c.classList.remove('drag-over'));
-          stopAutoScroll();
-        });
-      });
-
-      dropCells.forEach(cell => {
-        cell.addEventListener('dragover', function(e) {
-          const y = parseInt(this.dataset.y);
-          if (y >= allowedRows) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          this.classList.add('drag-over');
-          handleAutoScroll(e.clientY);
-        });
-        cell.addEventListener('dragleave', function(e) {
-          if (!this.contains(e.relatedTarget)) this.classList.remove('drag-over');
-        });
-        cell.addEventListener('drop', function(e) {
-          e.preventDefault();
-          this.classList.remove('drag-over');
-          stopAutoScroll();
-          const productId = e.dataTransfer.getData('text/plain');
-          const x = parseInt(this.dataset.x);
-          const y = parseInt(this.dataset.y);
-          if (x >= 0 && x < matrixColumns && y >= 0 && y < matrixRows && y < allowedRows && !reservedRows.has(y)) {
-            updateProductPosition(productId, x, y);
-          }
-        });
-      });
-
-      function handleAutoScroll(mouseY) {
-        const vh = window.innerHeight;
-        if (vh - mouseY < scrollEdgeSize) {
-          if (!autoScrollInterval) autoScrollInterval = setInterval(() => window.scrollBy({ top: scrollSpeed, behavior: 'auto' }), 16);
-        } else if (mouseY < scrollEdgeSize) {
-          if (!autoScrollInterval) autoScrollInterval = setInterval(() => window.scrollBy({ top: -scrollSpeed, behavior: 'auto' }), 16);
-        } else { stopAutoScroll(); }
-      }
-      function stopAutoScroll() { if (autoScrollInterval) { clearInterval(autoScrollInterval); autoScrollInterval = null; } }
-
-      // Context menu for vaciar celda
-      document.addEventListener('contextmenu', function(e) {
-        const card = e.target.closest('.product-card');
-        const isUnassigned = card && card.dataset.unassigned === 'true';
-        if (card && card.dataset.productId) {
-          e.preventDefault();
-          if (isUnassigned) {
-            const productId = card.dataset.productId;
-            const x = prompt('Columna (X):', '0');
-            const y = prompt('Fila (Y):', '0');
-            if (x !== null && y !== null) placeUnassigned(productId, parseInt(x), parseInt(y));
-            return;
-          }
-          if (confirm('¿Reservar esta celda como vacía?')) {
-            const productId = card.dataset.productId;
-            const x = card.dataset.x || card.parentElement?.dataset.x;
-            const y = card.dataset.y || card.parentElement?.dataset.y;
-            vaciarCelda(productId, x, y);
-          }
+    function handleAutoScroll(mouseY: number) {
+      const vh = window.innerHeight;
+      if (vh - mouseY < scrollEdgeSize) {
+        if (!autoScrollInterval) {
+          autoScrollInterval = window.setInterval(() => window.scrollBy({ top: scrollSpeed, behavior: 'auto' }), 16);
         }
-      });
-
-      async function updateProductPosition(productId, x, y) {
-        try {
-          const fd = new FormData();
-          fd.append('_csrf', csrfToken || '');
-          fd.append('productId', productId);
-          fd.append('x', x);
-          fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/update-position', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
-          if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
-        } catch (err) { console.error(err); alert('Error al actualizar posición'); }
+      } else if (mouseY < scrollEdgeSize) {
+        if (!autoScrollInterval) {
+          autoScrollInterval = window.setInterval(() => window.scrollBy({ top: -scrollSpeed, behavior: 'auto' }), 16);
+        }
+      } else {
+        stopAutoScroll();
       }
-
-      async function vaciarCelda(productId, x, y) {
-        try {
-          const fd = new FormData();
-          fd.append('_csrf', csrfToken || '');
-          fd.append('productId', productId);
-          fd.append('x', x);
-          fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/vaciar-celda', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
-          if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
-        } catch (err) { console.error(err); alert('Error al reservar celda'); }
+    }
+    
+    function stopAutoScroll() {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
       }
+    }
 
-      async function placeUnassigned(productId, x, y) {
-        try {
-          const fd = new FormData();
-          fd.append('_csrf', csrfToken || '');
-          fd.append('productId', productId);
-          fd.append('x', x);
-          fd.append('y', y);
-          const resp = await fetch('/api/catalog/' + catalogType + '/place-unassigned', { method: 'POST', body: fd, headers: { 'X-CSRF-Token': csrfToken || '' } });
-          if (resp.ok) location.reload(); else alert('Error: ' + await resp.text());
-        } catch (err) { console.error(err); alert('Error al asignar posición'); }
+    // Context menu for vaciar celda
+    const contextMenuHandler = (e: MouseEvent) => {
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.product-card');
+      const isUnassigned = card && card.dataset.unassigned === 'true';
+      if (card && card.dataset.productId) {
+        e.preventDefault();
+        if (isUnassigned) {
+          const productId = card.dataset.productId;
+          const x = prompt('Columna (X):', '0');
+          const y = prompt('Fila (Y):', '0');
+          if (x !== null && y !== null) placeUnassigned(productId, parseInt(x), parseInt(y));
+          return;
+        }
+        if (confirm('¿Reservar esta celda como vacía?')) {
+          const productId = card.dataset.productId;
+          const x = card.dataset.x || (card.parentElement as HTMLElement | null)?.dataset.x;
+          const y = card.dataset.y || (card.parentElement as HTMLElement | null)?.dataset.y;
+          if (x && y) vaciarCelda(productId, x, y);
+        }
       }
-    })();
-  `;
+    };
+    
+    document.addEventListener('contextmenu', contextMenuHandler);
 
-  return <script dangerouslySetInnerHTML={{ __html: scriptContent }} />;
+    async function updateProductPosition(productId: string, x: number, y: number) {
+      try {
+        // Guardar posición del scroll antes de recargar
+        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+        
+        const fd = new FormData();
+        fd.append('_csrf', csrfToken || '');
+        fd.append('productId', productId);
+        fd.append('x', x.toString());
+        fd.append('y', y.toString());
+        const resp = await fetch('/api/catalog/' + catalogType + '/update-position', {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-CSRF-Token': csrfToken || '' }
+        });
+        if (resp.ok) location.reload();
+        else alert('Error: ' + await resp.text());
+      } catch (err) {
+        console.error(err);
+        alert('Error al actualizar posición');
+      }
+    }
+
+    async function vaciarCelda(productId: string, x: string, y: string) {
+      try {
+        // Guardar posición del scroll antes de recargar
+        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+        
+        const fd = new FormData();
+        fd.append('_csrf', csrfToken || '');
+        fd.append('productId', productId);
+        fd.append('x', x);
+        fd.append('y', y);
+        const resp = await fetch('/api/catalog/' + catalogType + '/vaciar-celda', {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-CSRF-Token': csrfToken || '' }
+        });
+        if (resp.ok) location.reload();
+        else alert('Error: ' + await resp.text());
+      } catch (err) {
+        console.error(err);
+        alert('Error al reservar celda');
+      }
+    }
+
+    async function placeUnassigned(productId: string, x: number, y: number) {
+      try {
+        // Guardar posición del scroll antes de recargar
+        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
+        
+        const fd = new FormData();
+        fd.append('_csrf', csrfToken || '');
+        fd.append('productId', productId);
+        fd.append('x', x.toString());
+        fd.append('y', y.toString());
+        const resp = await fetch('/api/catalog/' + catalogType + '/place-unassigned', {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-CSRF-Token': csrfToken || '' }
+        });
+        if (resp.ok) location.reload();
+        else alert('Error: ' + await resp.text());
+      } catch (err) {
+        console.error(err);
+        alert('Error al asignar posición');
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('contextmenu', contextMenuHandler);
+    };
+  }, [catalogType, matrixRows, matrixColumns, maxAllowedRows, reservedRows, emptyCells, csrfToken]);
+
+  return null;
 }
