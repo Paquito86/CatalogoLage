@@ -101,8 +101,20 @@ export function validateSameOrigin(request: Request) {
   }
 
   const targetOrigin = new URL(request.url).origin;
-  const origin = parseOrigin(request.headers.get("Origin"));
-  const refererOrigin = parseOrigin(request.headers.get("Referer"));
+  const originHeader = request.headers.get("Origin");
+  const refererHeader = request.headers.get("Referer");
+  const origin = parseOrigin(originHeader);
+  const refererOrigin = parseOrigin(refererHeader);
+
+  console.log("[validateSameOrigin]", {
+    method: request.method,
+    url: request.url,
+    targetOrigin,
+    originHeader,
+    origin,
+    refererHeader,
+    refererOrigin,
+  });
 
   // Validar Origin si está presente
   if (origin) {
@@ -110,34 +122,54 @@ export function validateSameOrigin(request: Request) {
       console.error("Origin mismatch:", { origin, targetOrigin });
       throw new Response("Origen inválido", { status: 403 });
     }
+    console.log("[validateSameOrigin] Valid via Origin header");
     return; // Origin válido
   }
 
   // Si no hay Origin, validar Referer (común en algunos navegadores para same-origin requests)
   if (refererOrigin && refererOrigin === targetOrigin) {
+    console.log("[validateSameOrigin] Valid via Referer header");
     return; // Referer válido
   }
 
   // Rechazar si no hay ni Origin ni Referer válidos
-  console.error("Missing or invalid origin/referer:", { origin, refererOrigin, targetOrigin });
+  console.error("Missing or invalid origin/referer:", { origin, refererOrigin, targetOrigin, originHeader, refererHeader });
   throw new Response("Origen inválido", { status: 403 });
 }
 
 export async function requireAdminMutation(request: Request, formData?: FormData) {
   const user = await requireAdmin(request);
-  validateSameOrigin(request);
+  
+  // Validación de same-origin (puede deshabilitarse con DISABLE_ORIGIN_CHECK para debugging)
+  if (process.env.DISABLE_ORIGIN_CHECK !== "true") {
+    validateSameOrigin(request);
+  } else {
+    console.warn("[requireAdminMutation] Origin validation DISABLED - only for debugging!");
+  }
 
   const tokenFromHeader = request.headers.get("X-CSRF-Token")?.trim() || "";
   const tokenFromBody = formData ? String(formData.get("_csrf") || "").trim() : "";
   const token = tokenFromHeader || tokenFromBody;
   const expected = createCsrfTokenForUserId(user.id);
 
+  console.log("[requireAdminMutation] CSRF validation:", {
+    hasToken: !!token,
+    hasTokenFromHeader: !!tokenFromHeader,
+    hasTokenFromBody: !!tokenFromBody,
+    tokenLength: token.length,
+    expectedLength: expected.length,
+    userId: user.id,
+    tokensMatch: token === expected,
+  });
+
   if (!token || token !== expected) {
     console.error("CSRF token validation failed:", { 
       hasToken: !!token, 
       tokenLength: token.length,
       expectedLength: expected.length,
-      userId: user.id
+      userId: user.id,
+      token: token.substring(0, 10) + "...",
+      expected: expected.substring(0, 10) + "...",
     });
     throw new Response("CSRF token inválido", { status: 403 });
   }
