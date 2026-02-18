@@ -104,22 +104,23 @@ export function validateSameOrigin(request: Request) {
   const origin = parseOrigin(request.headers.get("Origin"));
   const refererOrigin = parseOrigin(request.headers.get("Referer"));
 
-  // En desarrollo, permitir solicitudes sin Origin si tienen Referer válido
-  if (process.env.NODE_ENV !== "production") {
-    if (refererOrigin && refererOrigin === targetOrigin) {
-      return;
+  // Validar Origin si está presente
+  if (origin) {
+    if (origin !== targetOrigin) {
+      console.error("Origin mismatch:", { origin, targetOrigin });
+      throw new Response("Origen inválido", { status: 403 });
     }
+    return; // Origin válido
   }
 
-  if (origin && origin !== targetOrigin) {
-    console.error("Origin mismatch:", { origin, targetOrigin });
-    throw new Response("Origen inválido", { status: 403 });
+  // Si no hay Origin, validar Referer (común en algunos navegadores para same-origin requests)
+  if (refererOrigin && refererOrigin === targetOrigin) {
+    return; // Referer válido
   }
 
-  if (!origin && (!refererOrigin || refererOrigin !== targetOrigin)) {
-    console.error("Missing or invalid origin/referer:", { origin, refererOrigin, targetOrigin });
-    throw new Response("Origen inválido", { status: 403 });
-  }
+  // Rechazar si no hay ni Origin ni Referer válidos
+  console.error("Missing or invalid origin/referer:", { origin, refererOrigin, targetOrigin });
+  throw new Response("Origen inválido", { status: 403 });
 }
 
 export async function requireAdminMutation(request: Request, formData?: FormData) {
