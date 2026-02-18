@@ -15,7 +15,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (!text) return new Response("El título es obligatorio", { status: 400 });
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     const exists = await prisma.catalogTitleRow.findFirst({ where: { MatrixY: y } });
@@ -25,10 +25,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     const exists = await prisma.catalogSpiritsTitleRow.findFirst({ where: { MatrixY: y } });
     if (exists) return new Response("Ya existe un título en esa fila", { status: 400 });
     await prisma.catalogSpiritsTitleRow.create({ data: { Text: text, MatrixY: y, Level: level } });
-  } else {
+  } else if (catalogType === "cafe") {
     const exists = await prisma.catalogCafeTitleRow.findFirst({ where: { MatrixY: y } });
     if (exists) return new Response("Ya existe un título en esa fila", { status: 400 });
     await prisma.catalogCafeTitleRow.create({ data: { Text: text, MatrixY: y, Level: level } });
+  } else {
+    const exists = await prisma.catalogAguaCervezaTitleRow.findFirst({ where: { MatrixY: y } });
+    if (exists) return new Response("Ya existe un título en esa fila", { status: 400 });
+    await prisma.catalogAguaCervezaTitleRow.create({ data: { Text: text, MatrixY: y, Level: level } });
   }
 
   return redirect(`${catalogPath}?AdminMode=true`);

@@ -17,7 +17,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (!text) return new Response("El título es obligatorio", { status: 400 });
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     const title = await prisma.catalogTitleRow.findUnique({ where: { Id: id } });
@@ -35,7 +35,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       if (exists) return new Response("Ya existe un título en la fila destino", { status: 400 });
     }
     await prisma.catalogSpiritsTitleRow.update({ where: { Id: id }, data: { Text: text, MatrixY: y, Level: level } });
-  } else {
+  } else if (catalogType === "cafe") {
     const title = await prisma.catalogCafeTitleRow.findUnique({ where: { Id: id } });
     if (!title) return new Response("Not found", { status: 404 });
     if (y !== title.MatrixY) {
@@ -43,6 +43,14 @@ export async function action({ request, params }: Route.ActionArgs) {
       if (exists) return new Response("Ya existe un título en la fila destino", { status: 400 });
     }
     await prisma.catalogCafeTitleRow.update({ where: { Id: id }, data: { Text: text, MatrixY: y, Level: level } });
+  } else {
+    const title = await prisma.catalogAguaCervezaTitleRow.findUnique({ where: { Id: id } });
+    if (!title) return new Response("Not found", { status: 404 });
+    if (y !== title.MatrixY) {
+      const exists = await prisma.catalogAguaCervezaTitleRow.findFirst({ where: { MatrixY: y, Id: { not: id } } });
+      if (exists) return new Response("Ya existe un título en la fila destino", { status: 400 });
+    }
+    await prisma.catalogAguaCervezaTitleRow.update({ where: { Id: id }, data: { Text: text, MatrixY: y, Level: level } });
   }
 
   return redirect(`${catalogPath}?AdminMode=true`);

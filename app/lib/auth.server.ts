@@ -104,11 +104,20 @@ export function validateSameOrigin(request: Request) {
   const origin = parseOrigin(request.headers.get("Origin"));
   const refererOrigin = parseOrigin(request.headers.get("Referer"));
 
+  // En desarrollo, permitir solicitudes sin Origin si tienen Referer válido
+  if (process.env.NODE_ENV !== "production") {
+    if (refererOrigin && refererOrigin === targetOrigin) {
+      return;
+    }
+  }
+
   if (origin && origin !== targetOrigin) {
+    console.error("Origin mismatch:", { origin, targetOrigin });
     throw new Response("Origen inválido", { status: 403 });
   }
 
   if (!origin && (!refererOrigin || refererOrigin !== targetOrigin)) {
+    console.error("Missing or invalid origin/referer:", { origin, refererOrigin, targetOrigin });
     throw new Response("Origen inválido", { status: 403 });
   }
 }
@@ -123,6 +132,12 @@ export async function requireAdminMutation(request: Request, formData?: FormData
   const expected = createCsrfTokenForUserId(user.id);
 
   if (!token || token !== expected) {
+    console.error("CSRF token validation failed:", { 
+      hasToken: !!token, 
+      tokenLength: token.length,
+      expectedLength: expected.length,
+      userId: user.id
+    });
     throw new Response("CSRF token inválido", { status: 403 });
   }
 

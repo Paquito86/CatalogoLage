@@ -10,7 +10,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   await requireAdminMutation(request, form);
   const count = Math.max(0, Number(form.get("count")) || 0);
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (count <= 0) return redirect(`${catalogPath}?AdminMode=true`);
 
@@ -48,7 +48,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       await prisma.catalogSpiritsEmptyCell.deleteMany({ where: { Y: y } });
       deleted++; y--;
     }
-  } else {
+  } else if (catalogType === "cafe") {
     let deleted = 0;
     const maxY = Math.max(
       (await prisma.product.aggregate({ where: { Category: { SortOrder: 3 } }, _max: { MatrixYCafe: true } }))._max.MatrixYCafe ?? -1,
@@ -63,6 +63,23 @@ export async function action({ request, params }: Route.ActionArgs) {
       const empties = await prisma.catalogCafeEmptyCell.findMany({ where: { Y: y } });
       if (empties.length === 0) { y--; continue; }
       await prisma.catalogCafeEmptyCell.deleteMany({ where: { Y: y } });
+      deleted++; y--;
+    }
+  } else {
+    let deleted = 0;
+    const maxY = Math.max(
+      (await prisma.product.aggregate({ where: { Category: { SortOrder: 4 } }, _max: { MatrixYAguaCerveza: true } }))._max.MatrixYAguaCerveza ?? -1,
+      (await prisma.catalogAguaCervezaTitleRow.aggregate({ _max: { MatrixY: true } }))._max.MatrixY ?? -1,
+      (await prisma.catalogAguaCervezaEmptyCell.aggregate({ _max: { Y: true } }))._max.Y ?? -1,
+    );
+    let y = maxY;
+    while (deleted < count && y >= 0) {
+      const hasProduct = await prisma.product.findFirst({ where: { MatrixYAguaCerveza: y, Category: { SortOrder: 4 } } });
+      const hasTitle = await prisma.catalogAguaCervezaTitleRow.findFirst({ where: { MatrixY: y } });
+      if (hasProduct || hasTitle) break;
+      const empties = await prisma.catalogAguaCervezaEmptyCell.findMany({ where: { Y: y } });
+      if (empties.length === 0) { y--; continue; }
+      await prisma.catalogAguaCervezaEmptyCell.deleteMany({ where: { Y: y } });
       deleted++; y--;
     }
   }

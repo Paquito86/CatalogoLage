@@ -10,7 +10,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   await requireAdminMutation(request, form);
   const y = Math.max(0, Number(form.get("y")) || 0);
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     // Unassign products in this row
@@ -56,7 +56,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     for (const e of emptiesBelow) {
       await prisma.catalogSpiritsEmptyCell.update({ where: { Id: e.Id }, data: { Y: e.Y - 1 } });
     }
-  } else {
+  } else if (catalogType === "cafe") {
     await prisma.product.updateMany({
       where: { MatrixYCafe: y, Category: { SortOrder: 3 } },
       data: { MatrixXCafe: null, MatrixYCafe: null },
@@ -76,6 +76,27 @@ export async function action({ request, params }: Route.ActionArgs) {
     const emptiesBelow = await prisma.catalogCafeEmptyCell.findMany({ where: { Y: { gt: y } } });
     for (const e of emptiesBelow) {
       await prisma.catalogCafeEmptyCell.update({ where: { Id: e.Id }, data: { Y: e.Y - 1 } });
+    }
+  } else {
+    await prisma.product.updateMany({
+      where: { MatrixYAguaCerveza: y, Category: { SortOrder: 4 } },
+      data: { MatrixXAguaCerveza: null, MatrixYAguaCerveza: null },
+    });
+    await prisma.catalogAguaCervezaTitleRow.deleteMany({ where: { MatrixY: y } });
+    await prisma.catalogAguaCervezaEmptyCell.deleteMany({ where: { Y: y } });
+    const productsBelow = await prisma.product.findMany({
+      where: { MatrixYAguaCerveza: { gt: y }, Category: { SortOrder: 4 } },
+    });
+    for (const p of productsBelow) {
+      await prisma.product.update({ where: { Id: p.Id }, data: { MatrixYAguaCerveza: (p.MatrixYAguaCerveza ?? 0) - 1 } });
+    }
+    const titlesBelow = await prisma.catalogAguaCervezaTitleRow.findMany({ where: { MatrixY: { gt: y } } });
+    for (const t of titlesBelow) {
+      await prisma.catalogAguaCervezaTitleRow.update({ where: { Id: t.Id }, data: { MatrixY: t.MatrixY - 1 } });
+    }
+    const emptiesBelow = await prisma.catalogAguaCervezaEmptyCell.findMany({ where: { Y: { gt: y } } });
+    for (const e of emptiesBelow) {
+      await prisma.catalogAguaCervezaEmptyCell.update({ where: { Id: e.Id }, data: { Y: e.Y - 1 } });
     }
   }
 

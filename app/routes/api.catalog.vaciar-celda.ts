@@ -23,10 +23,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXSpirits: null, MatrixYSpirits: null } });
     const exists = await prisma.catalogSpiritsEmptyCell.findFirst({ where: { X: x, Y: y } });
     if (!exists) await prisma.catalogSpiritsEmptyCell.create({ data: { X: x, Y: y } });
-  } else {
+  } else if (catalogType === "cafe") {
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXCafe: null, MatrixYCafe: null } });
     const exists = await prisma.catalogCafeEmptyCell.findFirst({ where: { X: x, Y: y } });
     if (!exists) await prisma.catalogCafeEmptyCell.create({ data: { X: x, Y: y } });
+  } else {
+    await prisma.product.update({ where: { Id: productId }, data: { MatrixXAguaCerveza: null, MatrixYAguaCerveza: null } });
+    const exists = await prisma.catalogAguaCervezaEmptyCell.findFirst({ where: { X: x, Y: y } });
+    if (!exists) await prisma.catalogAguaCervezaEmptyCell.create({ data: { X: x, Y: y } });
   }
 
   return { success: true };

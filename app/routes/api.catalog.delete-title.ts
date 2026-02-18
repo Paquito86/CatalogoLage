@@ -11,14 +11,16 @@ export async function action({ request, params }: Route.ActionArgs) {
   const id = Number(form.get("id"));
   if (!Number.isInteger(id) || id <= 0) return new Response("Id inválido", { status: 400 });
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     await prisma.catalogTitleRow.delete({ where: { Id: id } }).catch(() => {});
   } else if (catalogType === "spirits") {
     await prisma.catalogSpiritsTitleRow.delete({ where: { Id: id } }).catch(() => {});
-  } else {
+  } else if (catalogType === "cafe") {
     await prisma.catalogCafeTitleRow.delete({ where: { Id: id } }).catch(() => {});
+  } else {
+    await prisma.catalogAguaCervezaTitleRow.delete({ where: { Id: id } }).catch(() => {});
   }
 
   return redirect(`${catalogPath}?AdminMode=true`);

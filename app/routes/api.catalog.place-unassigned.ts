@@ -29,13 +29,20 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (occupied) return new Response("La celda ya está ocupada", { status: 400 });
     await prisma.catalogSpiritsEmptyCell.deleteMany({ where: { X: x, Y: y } });
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXSpirits: x, MatrixYSpirits: y } });
-  } else {
+  } else if (catalogType === "cafe") {
     const occupied = await prisma.product.findFirst({
       where: { MatrixXCafe: x, MatrixYCafe: y, Category: { SortOrder: 3 } },
     });
     if (occupied) return new Response("La celda ya está ocupada", { status: 400 });
     await prisma.catalogCafeEmptyCell.deleteMany({ where: { X: x, Y: y } });
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXCafe: x, MatrixYCafe: y } });
+  } else {
+    const occupied = await prisma.product.findFirst({
+      where: { MatrixXAguaCerveza: x, MatrixYAguaCerveza: y, Category: { SortOrder: 4 } },
+    });
+    if (occupied) return new Response("La celda ya está ocupada", { status: 400 });
+    await prisma.catalogAguaCervezaEmptyCell.deleteMany({ where: { X: x, Y: y } });
+    await prisma.product.update({ where: { Id: productId }, data: { MatrixXAguaCerveza: x, MatrixYAguaCerveza: y } });
   }
 
   return { success: true };

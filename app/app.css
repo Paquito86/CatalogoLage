@@ -91,6 +91,16 @@ body {
 .drag-handle i { font-size: 18px; margin-bottom: 2px; }
 .drag-handle small { font-size: 8px; line-height: 1; opacity: .9; font-weight: 400; }
 .non-draggable { user-select: none; pointer-events: none; }
+
+/* Fix drag-drop: In admin mode, allow drop events to reach matrix-cell by making cards non-blocking */
+.matrix-grid.admin-mode .product-card {
+  pointer-events: none;
+}
+/* But keep drag-area interactive */
+.matrix-grid.admin-mode .drag-area {
+  pointer-events: auto;
+}
+
 .unpositioned-products {
   background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeaa7;
 }

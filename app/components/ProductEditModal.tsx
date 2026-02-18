@@ -42,10 +42,21 @@ export default function ProductEditModal({
 
   if (!product || !isOpen) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
     <>
-      <div className="modal fade show" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} tabIndex={-1}>
-        <div className="modal-dialog modal-lg">
+      <div 
+        className="modal fade show" 
+        style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} 
+        tabIndex={-1}
+        onClick={handleBackdropClick}
+      >
+        <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">Editar Producto: {product.Name}</h5>

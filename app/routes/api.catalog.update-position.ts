@@ -39,7 +39,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
     await prisma.catalogSpiritsEmptyCell.deleteMany({ where: { X: x, Y: y } });
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXSpirits: x, MatrixYSpirits: y } });
-  } else {
+  } else if (catalogType === "cafe") {
     const existing = await prisma.product.findFirst({
       where: { MatrixXCafe: x, MatrixYCafe: y, Id: { not: productId }, Category: { SortOrder: 3 } },
     });
@@ -48,6 +48,15 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
     await prisma.catalogCafeEmptyCell.deleteMany({ where: { X: x, Y: y } });
     await prisma.product.update({ where: { Id: productId }, data: { MatrixXCafe: x, MatrixYCafe: y } });
+  } else {
+    const existing = await prisma.product.findFirst({
+      where: { MatrixXAguaCerveza: x, MatrixYAguaCerveza: y, Id: { not: productId }, Category: { SortOrder: 4 } },
+    });
+    if (existing) {
+      await prisma.product.update({ where: { Id: existing.Id }, data: { MatrixXAguaCerveza: product.MatrixXAguaCerveza, MatrixYAguaCerveza: product.MatrixYAguaCerveza } });
+    }
+    await prisma.catalogAguaCervezaEmptyCell.deleteMany({ where: { X: x, Y: y } });
+    await prisma.product.update({ where: { Id: productId }, data: { MatrixXAguaCerveza: x, MatrixYAguaCerveza: y } });
   }
 
   return { success: true };

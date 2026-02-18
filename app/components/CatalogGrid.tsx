@@ -148,7 +148,14 @@ export default function CatalogGrid({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
 
   useEffect(() => {
-    const handleClick = () => setContextMenu(null);
+    const handleClick = (e: MouseEvent) => {
+      // No cerrar el menú si se hace click dentro del menú contextual
+      const target = e.target as HTMLElement;
+      if (target.closest('.context-menu-wrapper')) {
+        return;
+      }
+      setContextMenu(null);
+    };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
@@ -170,7 +177,7 @@ export default function CatalogGrid({
   const origin = searchParams.get("Origin") || "";
   const grapeTypeId = searchParams.get("GrapeTypeId") || "";
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   return (
     <>
@@ -389,7 +396,7 @@ export default function CatalogGrid({
 
       {isAdmin && !isPrintMode && contextMenu && (
         <div
-          className="dropdown-menu show"
+          className="context-menu-wrapper"
           style={{
              position: "fixed",
              top: contextMenu.y,
@@ -397,17 +404,20 @@ export default function CatalogGrid({
              zIndex: 9999,
           }}
         >
-          <button
-            className="dropdown-item"
-            type="button"
-            onClick={() => {
-              setEditingProduct(contextMenu.product);
-              setContextMenu(null);
-            }}
-          >
-            <i className="bi bi-pencil-square me-2"></i>
-            Editar producto
-          </button>
+          <div className="dropdown-menu show">
+            <button
+              className="dropdown-item"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingProduct(contextMenu.product);
+                setContextMenu(null);
+              }}
+            >
+              <i className="bi bi-pencil-square me-2"></i>
+              Editar producto
+            </button>
+          </div>
         </div>
       )}
 

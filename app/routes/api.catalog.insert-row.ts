@@ -12,7 +12,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   await requireAdminMutation(request, form);
   const y = Math.max(0, Number(form.get("y")) || 0);
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : "/cafe";
+  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     const newRowY = y + 1;
@@ -56,7 +56,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       const exists = await prisma.catalogSpiritsEmptyCell.findFirst({ where: { X: x, Y: newRowY } });
       if (!exists) await prisma.catalogSpiritsEmptyCell.create({ data: { X: x, Y: newRowY } });
     }
-  } else {
+  } else if (catalogType === "cafe") {
     const newRowY = y + 1;
     const productsToShift = await prisma.product.findMany({
       where: { MatrixYCafe: { gte: newRowY }, Category: { SortOrder: 3 } },
@@ -75,6 +75,26 @@ export async function action({ request, params }: Route.ActionArgs) {
     for (let x = 0; x < MATRIX_COLUMNS; x++) {
       const exists = await prisma.catalogCafeEmptyCell.findFirst({ where: { X: x, Y: newRowY } });
       if (!exists) await prisma.catalogCafeEmptyCell.create({ data: { X: x, Y: newRowY } });
+    }
+  } else {
+    const newRowY = y + 1;
+    const productsToShift = await prisma.product.findMany({
+      where: { MatrixYAguaCerveza: { gte: newRowY }, Category: { SortOrder: 4 } },
+    });
+    for (const p of productsToShift) {
+      await prisma.product.update({ where: { Id: p.Id }, data: { MatrixYAguaCerveza: (p.MatrixYAguaCerveza ?? 0) + 1 } });
+    }
+    const titlesToShift = await prisma.catalogAguaCervezaTitleRow.findMany({ where: { MatrixY: { gte: newRowY } } });
+    for (const t of titlesToShift) {
+      await prisma.catalogAguaCervezaTitleRow.update({ where: { Id: t.Id }, data: { MatrixY: t.MatrixY + 1 } });
+    }
+    const emptiesToShift = await prisma.catalogAguaCervezaEmptyCell.findMany({ where: { Y: { gte: newRowY } } });
+    for (const e of emptiesToShift) {
+      await prisma.catalogAguaCervezaEmptyCell.update({ where: { Id: e.Id }, data: { Y: e.Y + 1 } });
+    }
+    for (let x = 0; x < MATRIX_COLUMNS; x++) {
+      const exists = await prisma.catalogAguaCervezaEmptyCell.findFirst({ where: { X: x, Y: newRowY } });
+      if (!exists) await prisma.catalogAguaCervezaEmptyCell.create({ data: { X: x, Y: newRowY } });
     }
   }
 
