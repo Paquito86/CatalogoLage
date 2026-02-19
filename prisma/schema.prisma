@@ -4,41 +4,31 @@ generator client {
 
 datasource db {
   provider = "sqlserver"
-  url      = env("DATABASE_URL")
 }
 
 model Product {
-  Id             Int       @id @default(autoincrement())
-  Name           String    @db.NVarChar(200)
-  Manufacturer   String?   @db.NVarChar(200)
-  Winery         String?   @db.NVarChar(200)
-  Price          Decimal?  @db.Decimal(12, 2)
-  Description    String?   @db.NVarChar(Max)
-  ImageUrl       String?   @db.NVarChar(Max)
-  Size           String?   @db.NVarChar(50)
-  AlcoholPercent Float?
-  Origin         String?   @db.NVarChar(100)
-  CategoryId     Int
-  GrapeTypeId    Int?
-
-  // Wine matrix coordinates
-  MatrixX Int?
-  MatrixY Int?
-
-  // Spirits matrix coordinates
-  MatrixXSpirits Int?
-  MatrixYSpirits Int?
-
-  // Coffee matrix coordinates
-  MatrixXCafe Int?
-  MatrixYCafe Int?
-
-  // Water & Beer matrix coordinates
+  Id                 Int        @id @default(autoincrement())
+  Name               String     @db.NVarChar(200)
+  Manufacturer       String?    @db.NVarChar(200)
+  Winery             String?    @db.NVarChar(200)
+  Price              Decimal?   @db.Decimal(12, 2)
+  Description        String?    @db.NVarChar(Max)
+  ImageUrl           String?    @db.NVarChar(Max)
+  Size               String?    @db.NVarChar(50)
+  AlcoholPercent     Float?
+  Origin             String?    @db.NVarChar(100)
+  CategoryId         Int
+  GrapeTypeId        Int?
+  MatrixX            Int?
+  MatrixY            Int?
+  MatrixXCafe        Int?
+  MatrixXSpirits     Int?
+  MatrixYCafe        Int?
+  MatrixYSpirits     Int?
   MatrixXAguaCerveza Int?
   MatrixYAguaCerveza Int?
-
-  Category  Category   @relation(fields: [CategoryId], references: [Id], onDelete: Cascade)
-  GrapeType GrapeType? @relation(fields: [GrapeTypeId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
+  Category           Category   @relation(fields: [CategoryId], references: [Id], onDelete: Cascade)
+  GrapeType          GrapeType? @relation(fields: [GrapeTypeId], references: [Id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("Products")
 }
@@ -134,21 +124,20 @@ model CatalogAguaCervezaEmptyCell {
   @@map("CatalogAguaCervezaEmptyCells")
 }
 
-// ASP.NET Identity tables (read-only from React app for authentication)
 model AspNetUser {
-  Id                   String              @id @db.NVarChar(450)
-  UserName             String?             @db.NVarChar(256)
-  NormalizedUserName   String?             @db.NVarChar(256)
-  Email                String?             @db.NVarChar(256)
-  NormalizedEmail      String?             @db.NVarChar(256)
+  Id                   String           @id @db.NVarChar(450)
+  UserName             String?          @db.NVarChar(256)
+  NormalizedUserName   String?          @db.NVarChar(256)
+  Email                String?          @db.NVarChar(256)
+  NormalizedEmail      String?          @db.NVarChar(256)
   EmailConfirmed       Boolean
-  PasswordHash         String?             @db.NVarChar(Max)
-  SecurityStamp        String?             @db.NVarChar(Max)
-  ConcurrencyStamp     String?             @db.NVarChar(Max)
-  PhoneNumber          String?             @db.NVarChar(Max)
+  PasswordHash         String?          @db.NVarChar(Max)
+  SecurityStamp        String?          @db.NVarChar(Max)
+  ConcurrencyStamp     String?          @db.NVarChar(Max)
+  PhoneNumber          String?          @db.NVarChar(Max)
   PhoneNumberConfirmed Boolean
   TwoFactorEnabled     Boolean
-  LockoutEnd           DateTime?           @db.DateTimeOffset
+  LockoutEnd           DateTime?        @db.DateTimeOffset
   LockoutEnabled       Boolean
   AccessFailedCount    Int
   UserRoles            AspNetUserRole[]
@@ -169,8 +158,8 @@ model AspNetRole {
 model AspNetUserRole {
   UserId String     @db.NVarChar(450)
   RoleId String     @db.NVarChar(450)
-  User   AspNetUser @relation(fields: [UserId], references: [Id], onDelete: Cascade)
   Role   AspNetRole @relation(fields: [RoleId], references: [Id], onDelete: Cascade)
+  User   AspNetUser @relation(fields: [UserId], references: [Id], onDelete: Cascade)
 
   @@id([UserId, RoleId])
   @@map("AspNetUserRoles")

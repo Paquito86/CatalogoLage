@@ -8,10 +8,10 @@ declare global {
 }
 
 if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient();
+  prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 } else {
   if (!global.__prisma) {
-    global.__prisma = new PrismaClient();
+    global.__prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
   }
   prisma = global.__prisma;
 }
