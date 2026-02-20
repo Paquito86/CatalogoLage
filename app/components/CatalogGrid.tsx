@@ -1,5 +1,5 @@
-import { Form, useSearchParams } from "react-router";
-import { useState, useEffect } from "react";
+import { Form, useSearchParams, useFetcher, useRevalidator } from "react-router";
+import { useState, useEffect, useRef } from "react";
 import type { CatalogData, CatalogType, ProductWithRelations } from "~/lib/catalog.server";
 import ProductEditModal from "./ProductEditModal";
 
@@ -147,6 +147,7 @@ export default function CatalogGrid({
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
   const [modalOpenCount, setModalOpenCount] = useState(0);
+  const revalidator = useRevalidator();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -159,19 +160,6 @@ export default function CatalogGrid({
     };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, []);
-
-  // Restaurar posición del scroll después de recargar
-  useEffect(() => {
-    const savedPosition = sessionStorage.getItem('catalog-scroll-position');
-    if (savedPosition) {
-      const position = parseInt(savedPosition, 10);
-      // Usar requestAnimationFrame para asegurar que el DOM esté completamente renderizado
-      requestAnimationFrame(() => {
-        window.scrollTo(0, position);
-        sessionStorage.removeItem('catalog-scroll-position');
-      });
-    }
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, product: ProductWithRelations) => {
@@ -405,6 +393,7 @@ export default function CatalogGrid({
           reservedRows={data.titleRows.map((t) => t.MatrixY)}
           emptyCells={data.emptyCells}
           csrfToken={csrfToken}
+          onMutationSuccess={() => revalidator.revalidate()}
         />
       )}
 
@@ -446,6 +435,13 @@ export default function CatalogGrid({
           onClose={() => setEditingProduct(null)}
         />
       )}
+
+      {/* Section collapse – always active outside print mode */}
+      {!isPrintMode && (
+        <SectionCollapseScript
+          matrixRows={data.matrixRows}
+        />
+      )}
     </>
   );
 }
@@ -459,16 +455,13 @@ function TitleEditForm({
   catalogType: CatalogType;
   csrfToken: string | null;
 }) {
-  const handleSubmit = () => {
-    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-  };
+  const fetcher = useFetcher();
   
   return (
-    <form
+    <fetcher.Form
       method="post"
       action={`/api/catalog/${catalogType}/update-title`}
       className="row g-1 align-items-end"
-      onSubmit={handleSubmit}
     >
       <div className="col-auto">
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
@@ -499,45 +492,47 @@ function TitleEditForm({
         </div>
       </div>
       <div className="col-auto">
-        <button type="submit" className="btn btn-sm btn-outline-success">Guardar</button>
+        <button type="submit" className="btn btn-sm btn-outline-success" disabled={fetcher.state !== "idle"}>
+          {fetcher.state !== "idle" ? "..." : "Guardar"}
+        </button>
       </div>
-    </form>
+    </fetcher.Form>
   );
 }
 
 function DeleteTitleButton({ titleId, catalogType, csrfToken }: { titleId: number; catalogType: CatalogType; csrfToken: string | null }) {
+  const fetcher = useFetcher();
   const handleSubmit = (e: React.FormEvent) => {
     if (!confirm("¿Eliminar este título?")) {
       e.preventDefault();
-    } else {
-      sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
     }
   };
   
   return (
-    <form
+    <fetcher.Form
       method="post"
       action={`/api/catalog/${catalogType}/delete-title`}
       onSubmit={handleSubmit}
     >
       <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
       <input type="hidden" name="id" value={titleId} />
-      <button type="submit" className="btn btn-sm btn-outline-danger">Eliminar</button>
-    </form>
+      <button type="submit" className="btn btn-sm btn-outline-danger" disabled={fetcher.state !== "idle"}>
+        {fetcher.state !== "idle" ? "..." : "Eliminar"}
+      </button>
+    </fetcher.Form>
   );
 }
 
 function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType: CatalogType; csrfToken: string | null }) {
+  const fetcher = useFetcher();
   const handleClick = (e: React.MouseEvent) => {
     if (!confirm("¿Eliminar esta fila? Se desplazarán hacia arriba las filas inferiores.")) {
       e.preventDefault();
-    } else {
-      sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
     }
   };
   
   return (
-    <form method="post" action={`/api/catalog/${catalogType}/delete-row`} className="delete-row-form">
+    <fetcher.Form method="post" action={`/api/catalog/${catalogType}/delete-row`} className="delete-row-form">
       <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
       <input type="hidden" name="y" value={y} />
       <button
@@ -545,25 +540,24 @@ function DeleteRowButton({ y, catalogType, csrfToken }: { y: number; catalogType
         className="btn btn-sm btn-danger delete-row-btn"
         title="Eliminar fila"
         onClick={handleClick}
+        disabled={fetcher.state !== "idle"}
       >
-        ✖
+        {fetcher.state !== "idle" ? "..." : "✖"}
       </button>
-    </form>
+    </fetcher.Form>
   );
 }
 
 function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; catalogType: CatalogType; csrfToken: string | null }) {
-  const handleFormSubmit = () => {
-    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-  };
+  const insertRowFetcher = useFetcher();
+  const deleteRowsFetcher = useFetcher();
   
   return (
     <div className="d-flex justify-content-end mb-4 gap-2">
-      <form
+      <insertRowFetcher.Form
         method="post"
         action={`/api/catalog/${catalogType}/insert-row`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
-        onSubmit={handleFormSubmit}
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
@@ -578,14 +572,15 @@ function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; ca
           />
         </div>
         <div className="d-grid">
-          <button type="submit" className="btn btn-sm btn-outline-primary">Añadir fila</button>
+          <button type="submit" className="btn btn-sm btn-outline-primary" disabled={insertRowFetcher.state !== "idle"}>
+            {insertRowFetcher.state !== "idle" ? "..." : "Añadir fila"}
+          </button>
         </div>
-      </form>
-      <form
+      </insertRowFetcher.Form>
+      <deleteRowsFetcher.Form
         method="post"
         action={`/api/catalog/${catalogType}/delete-last-empty-rows`}
         className="d-inline-flex align-items-end gap-2 p-2 border rounded bg-light"
-        onSubmit={handleFormSubmit}
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
@@ -600,9 +595,11 @@ function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; ca
           />
         </div>
         <div className="d-grid">
-          <button type="submit" className="btn btn-sm btn-outline-danger">Borrar</button>
+          <button type="submit" className="btn btn-sm btn-outline-danger" disabled={deleteRowsFetcher.state !== "idle"}>
+            {deleteRowsFetcher.state !== "idle" ? "..." : "Borrar"}
+          </button>
         </div>
-      </form>
+      </deleteRowsFetcher.Form>
     </div>
   );
 }
@@ -667,19 +664,24 @@ function UnpositionedProducts({
 }
 
 function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType; csrfToken: string | null }) {
-  const handleSubmit = () => {
-    sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-  };
+  const fetcher = useFetcher();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
+      formRef.current?.reset();
+    }
+  }, [fetcher.state, fetcher.data]);
   
   return (
     <div className="card mb-4">
       <div className="card-body">
         <h6>Crear título de sección</h6>
-        <form
+        <fetcher.Form
+          ref={formRef}
           method="post"
           action={`/api/catalog/${catalogType}/create-title`}
           className="row g-2 align-items-end"
-          onSubmit={handleSubmit}
         >
           <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
           <div className="col-md-4">
@@ -698,62 +700,25 @@ function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType;
             </select>
           </div>
           <div className="col-auto">
-            <button type="submit" className="btn btn-sm btn-primary">Crear título</button>
+            <button type="submit" className="btn btn-sm btn-primary" disabled={fetcher.state !== "idle"}>
+              {fetcher.state !== "idle" ? "Creando..." : "Crear título"}
+            </button>
           </div>
-        </form>
+        </fetcher.Form>
       </div>
     </div>
   );
 }
 
-function CatalogDragDropScript({
-  catalogType,
-  matrixRows,
-  matrixColumns,
-  maxAllowedRows,
-  reservedRows,
-  emptyCells,
-  csrfToken,
-}: {
-  catalogType: CatalogType;
-  matrixRows: number;
-  matrixColumns: number;
-  maxAllowedRows: number;
-  reservedRows: number[];
-  emptyCells: { x: number; y: number }[];
-  csrfToken: string | null;
-}) {
+function SectionCollapseScript({ matrixRows }: { matrixRows: number }) {
   useEffect(() => {
-    const isDev = process.env.NODE_ENV !== 'production';
-    const allowedRows = maxAllowedRows;
-    const reservedRowsSet = new Set(reservedRows);
-    const emptyReserved = new Set(emptyCells.map((e) => `${e.x}:${e.y}`));
-
-    const dropCells = [...document.querySelectorAll('.matrix-cell.editable')].filter(c => {
-      const cell = c as HTMLElement;
-      return !reservedRowsSet.has(parseInt(cell.dataset.y || '0')) && parseInt(cell.dataset.y || '0') < allowedRows;
-    });
-    
-    if (isDev) {
-      console.log('[Drag&Drop] Inicializando...');
-      console.log('[Drag&Drop] Celdas editables encontradas:', document.querySelectorAll('.matrix-cell.editable').length);
-      console.log('[Drag&Drop] Celdas de drop disponibles (después de filtrar):', dropCells.length);
-      console.log('[Drag&Drop] Filas reservadas:', [...reservedRowsSet]);
-      console.log('[Drag&Drop] Máximo de filas permitidas:', allowedRows);
-    }
-    
-    let autoScrollInterval: number | null = null;
-    const scrollEdgeSize = 60;
-    const scrollSpeed = 12;
-
-    // Section collapse
     const sectionRows = [...document.querySelectorAll<HTMLElement>('.matrix-title-row.section-row')].sort((a, b) => {
       return parseInt(a.dataset.y || '0') - parseInt(b.dataset.y || '0');
     });
     const allMatrixCells = [...document.querySelectorAll<HTMLElement>('.matrix-cell')];
     const storageKey = 'matrix-collapse:' + location.pathname;
     let collapsedSet = new Set<number>();
-    
+
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
       if (Array.isArray(saved)) {
@@ -790,10 +755,10 @@ function CatalogDragDropScript({
         sectionRows.forEach(sr => {
           const y = parseInt(sr.dataset.y || '0');
           if (y > yStart && y <= yEnd) {
-            const icon = sr.querySelector('.toggle-section i');
-            if (icon) {
-              icon.classList.toggle('bi-chevron-down', collapsed);
-              icon.classList.toggle('bi-chevron-up', !collapsed);
+            const srIcon = sr.querySelector('.toggle-section i');
+            if (srIcon) {
+              srIcon.classList.toggle('bi-chevron-down', collapsed);
+              srIcon.classList.toggle('bi-chevron-up', !collapsed);
             }
             sr.classList.toggle('section-collapsed', collapsed);
           }
@@ -809,10 +774,11 @@ function CatalogDragDropScript({
       }
     });
 
-    const toggleButtons = document.querySelectorAll<HTMLElement>('.toggle-section');
+    const toggleButtons = [...document.querySelectorAll<HTMLElement>('.toggle-section')];
+    const handlers = new Map<HTMLElement, () => void>();
     toggleButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
-        const row = this.closest<HTMLElement>('.section-row');
+      const handler = function() {
+        const row = btn.closest<HTMLElement>('.section-row');
         if (!row) return;
         const collapsed = row.classList.toggle('section-collapsed');
         setSectionCollapsed(row, collapsed);
@@ -824,8 +790,63 @@ function CatalogDragDropScript({
             localStorage.setItem(storageKey, JSON.stringify([...collapsedSet]));
           } catch {}
         }
-      });
+      };
+      handlers.set(btn, handler);
+      btn.addEventListener('click', handler);
     });
+
+    return () => {
+      handlers.forEach((handler, btn) => btn.removeEventListener('click', handler));
+    };
+  }, [matrixRows]);
+
+  return null;
+}
+
+function CatalogDragDropScript({
+  catalogType,
+  matrixRows,
+  matrixColumns,
+  maxAllowedRows,
+  reservedRows,
+  emptyCells,
+  csrfToken,
+  onMutationSuccess,
+}: {
+  catalogType: CatalogType;
+  matrixRows: number;
+  matrixColumns: number;
+  maxAllowedRows: number;
+  reservedRows: number[];
+  emptyCells: { x: number; y: number }[];
+  csrfToken: string | null;
+  onMutationSuccess: () => void;
+}) {
+  const onMutationSuccessRef = useRef(onMutationSuccess);
+  useEffect(() => { onMutationSuccessRef.current = onMutationSuccess; });
+
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const allowedRows = maxAllowedRows;
+    const reservedRowsSet = new Set(reservedRows);
+    const emptyReserved = new Set(emptyCells.map((e) => `${e.x}:${e.y}`));
+
+    const dropCells = [...document.querySelectorAll('.matrix-cell.editable')].filter(c => {
+      const cell = c as HTMLElement;
+      return !reservedRowsSet.has(parseInt(cell.dataset.y || '0')) && parseInt(cell.dataset.y || '0') < allowedRows;
+    });
+    
+    if (isDev) {
+      console.log('[Drag&Drop] Inicializando...');
+      console.log('[Drag&Drop] Celdas editables encontradas:', document.querySelectorAll('.matrix-cell.editable').length);
+      console.log('[Drag&Drop] Celdas de drop disponibles (después de filtrar):', dropCells.length);
+      console.log('[Drag&Drop] Filas reservadas:', [...reservedRowsSet]);
+      console.log('[Drag&Drop] Máximo de filas permitidas:', allowedRows);
+    }
+    
+    let autoScrollInterval: number | null = null;
+    const scrollEdgeSize = 60;
+    const scrollSpeed = 12;
 
     // Drag & drop
     const dragAreas = document.querySelectorAll<HTMLElement>('.drag-area');
@@ -947,9 +968,6 @@ function CatalogDragDropScript({
 
     async function updateProductPosition(productId: string, x: number, y: number) {
       try {
-        // Guardar posición del scroll antes de recargar
-        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-        
         const fd = new FormData();
         fd.append('_csrf', csrfToken || '');
         fd.append('productId', productId);
@@ -960,7 +978,7 @@ function CatalogDragDropScript({
           body: fd,
           headers: { 'X-CSRF-Token': csrfToken || '' }
         });
-        if (resp.ok) location.reload();
+        if (resp.ok) onMutationSuccessRef.current();
         else alert('Error: ' + await resp.text());
       } catch (err) {
         console.error(err);
@@ -970,9 +988,6 @@ function CatalogDragDropScript({
 
     async function vaciarCelda(productId: string, x: string, y: string) {
       try {
-        // Guardar posición del scroll antes de recargar
-        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-        
         const fd = new FormData();
         fd.append('_csrf', csrfToken || '');
         fd.append('productId', productId);
@@ -983,7 +998,7 @@ function CatalogDragDropScript({
           body: fd,
           headers: { 'X-CSRF-Token': csrfToken || '' }
         });
-        if (resp.ok) location.reload();
+        if (resp.ok) onMutationSuccessRef.current();
         else alert('Error: ' + await resp.text());
       } catch (err) {
         console.error(err);
@@ -993,9 +1008,6 @@ function CatalogDragDropScript({
 
     async function placeUnassigned(productId: string, x: number, y: number) {
       try {
-        // Guardar posición del scroll antes de recargar
-        sessionStorage.setItem('catalog-scroll-position', window.scrollY.toString());
-        
         const fd = new FormData();
         fd.append('_csrf', csrfToken || '');
         fd.append('productId', productId);
@@ -1006,7 +1018,7 @@ function CatalogDragDropScript({
           body: fd,
           headers: { 'X-CSRF-Token': csrfToken || '' }
         });
-        if (resp.ok) location.reload();
+        if (resp.ok) onMutationSuccessRef.current();
         else alert('Error: ' + await resp.text());
       } catch (err) {
         console.error(err);

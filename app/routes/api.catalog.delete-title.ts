@@ -1,4 +1,3 @@
-import { redirect } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { requireAdminMutation } from "~/lib/auth.server";
 import type { CatalogType } from "~/lib/catalog.server";
@@ -11,8 +10,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   const id = Number(form.get("id"));
   if (!Number.isInteger(id) || id <= 0) return new Response("Id inválido", { status: 400 });
 
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
-
   if (catalogType === "wines") {
     await prisma.catalogTitleRow.delete({ where: { Id: id } }).catch(() => {});
   } else if (catalogType === "spirits") {
@@ -23,5 +20,5 @@ export async function action({ request, params }: Route.ActionArgs) {
     await prisma.catalogAguaCervezaTitleRow.delete({ where: { Id: id } }).catch(() => {});
   }
 
-  return redirect(`${catalogPath}?AdminMode=true`);
+  return { success: true };
 }

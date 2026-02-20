@@ -1,4 +1,3 @@
-import { redirect } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { requireAdminMutation } from "~/lib/auth.server";
 import type { CatalogType } from "~/lib/catalog.server";
@@ -9,8 +8,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   const form = await request.formData();
   await requireAdminMutation(request, form);
   const y = Math.max(0, Number(form.get("y")) || 0);
-
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     // Unassign products in this row
@@ -100,5 +97,5 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
 
-  return redirect(`${catalogPath}?AdminMode=true`);
+  return { success: true };
 }

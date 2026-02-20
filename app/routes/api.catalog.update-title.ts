@@ -1,4 +1,3 @@
-import { redirect } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { requireAdminMutation } from "~/lib/auth.server";
 import type { CatalogType } from "~/lib/catalog.server";
@@ -16,8 +15,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (level !== 1 && level !== 2) level = 2;
 
   if (!text) return new Response("El título es obligatorio", { status: 400 });
-
-  const catalogPath = catalogType === "wines" ? "/catalog" : catalogType === "spirits" ? "/destilados" : catalogType === "aguacerveza" ? "/agua-cerveza" : "/cafe";
 
   if (catalogType === "wines") {
     const title = await prisma.catalogTitleRow.findUnique({ where: { Id: id } });
@@ -53,5 +50,5 @@ export async function action({ request, params }: Route.ActionArgs) {
     await prisma.catalogAguaCervezaTitleRow.update({ where: { Id: id }, data: { Text: text, MatrixY: y, Level: level } });
   }
 
-  return redirect(`${catalogPath}?AdminMode=true`);
+  return { success: true };
 }
