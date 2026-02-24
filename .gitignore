@@ -368,3 +368,6 @@ generated/
 .react-router/
 .vite/
 .env
+
+# Extra
+scripts/products-without-contabo-imagen.json
