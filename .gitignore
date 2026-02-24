@@ -370,4 +370,4 @@ generated/
 .env
 
 # Extra
-scripts/products-without-contabo-imagen.json
+scripts/products-without-contabo-image.json
