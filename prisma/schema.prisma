@@ -33,11 +33,22 @@ model Product {
   @@map("Products")
 }
 
+model Catalog {
+  Id         Int        @id @default(autoincrement())
+  Name       String     @db.NVarChar(100)
+  Slug       String     @unique @db.NVarChar(50)
+  Categories Category[]
+
+  @@map("Catalogs")
+}
+
 model Category {
-  Id          Int       @id @default(autoincrement())
-  Name        String    @db.NVarChar(Max)
-  Description String?   @db.NVarChar(Max)
+  Id          Int      @id @default(autoincrement())
+  Name        String   @db.NVarChar(Max)
+  Description String?  @db.NVarChar(Max)
   SortOrder   Int?
+  CatalogId   Int?
+  Catalog     Catalog? @relation(fields: [CatalogId], references: [Id])
   Products    Product[]
 
   @@map("Categories")

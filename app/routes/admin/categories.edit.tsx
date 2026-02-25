@@ -7,10 +7,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const id = parseInt(params.id, 10);
-  const category = await prisma.category.findUnique({ where: { Id: id } });
+  const [category, catalogs] = await Promise.all([
+    prisma.category.findUnique({ where: { Id: id } }),
+    prisma.catalog.findMany({ orderBy: { Name: "asc" } }),
+  ]);
   if (!category) throw new Response("Categoría no encontrada", { status: 404 });
 
-  return { category };
+  return { category, catalogs };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -25,12 +28,17 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const sortOrderStr = String(formData.get("SortOrder") || "");
+  const catalogIdStr = String(formData.get("CatalogId") || "");
+  if (!catalogIdStr) {
+    return { error: "Debes seleccionar un catálogo." };
+  }
 
   await prisma.category.update({
     where: { Id: id },
     data: {
       Name: name,
       Description: String(formData.get("Description") || "") || null,
+      CatalogId: parseInt(catalogIdStr, 10),
       SortOrder: sortOrderStr ? parseInt(sortOrderStr, 10) : null,
     },
   });
@@ -39,7 +47,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function CategoryEdit() {
-  const { category } = useLoaderData<typeof loader>();
+  const { category, catalogs } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -77,18 +85,32 @@ export default function CategoryEdit() {
             </div>
 
             <div className="mb-3">
-              <label htmlFor="SortOrder" className="form-label">Orden</label>
+              <label htmlFor="CatalogId" className="form-label">Catálogo *</label>
               <select
+                id="CatalogId"
+                name="CatalogId"
+                className="form-select"
+                defaultValue={category.CatalogId ?? ""}
+                required
+              >
+                <option value="">-- Selecciona un catálogo --</option>
+                {catalogs.map((c) => (
+                  <option key={c.Id} value={c.Id}>{c.Name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="SortOrder" className="form-label">Orden de visualización</label>
+              <input
+                type="number"
                 id="SortOrder"
                 name="SortOrder"
-                className="form-select"
+                className="form-control"
+                placeholder="(opcional)"
                 defaultValue={category.SortOrder ?? ""}
-              >
-                <option value="">Sin orden</option>
-                <option value="1">1 — Vinos</option>
-                <option value="2">2 — Destilados</option>
-                <option value="3">3 — Café</option>
-              </select>
+              />
+              <div className="form-text">Número para ordenar la categoría dentro de su catálogo.</div>
             </div>
           </div>
         </div>

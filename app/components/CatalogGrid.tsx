@@ -49,7 +49,9 @@ function ProductCard({
       ? product.MatrixX != null && product.MatrixY != null
       : catalogType === "spirits"
         ? product.MatrixXSpirits != null && product.MatrixYSpirits != null
-        : product.MatrixXCafe != null && product.MatrixYCafe != null;
+        : catalogType === "cafe"
+          ? product.MatrixXCafe != null && product.MatrixYCafe != null
+          : product.MatrixXAguaCerveza != null && product.MatrixYAguaCerveza != null;
 
   return (
     <div

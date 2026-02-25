@@ -7,8 +7,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const categories = await prisma.category.findMany({
-    include: { _count: { select: { Products: true } } },
-    orderBy: [{ SortOrder: "asc" }, { Name: "asc" }],
+    include: { _count: { select: { Products: true } }, Catalog: true },
+    orderBy: [{ Catalog: { Name: "asc" } }, { SortOrder: "asc" }, { Name: "asc" }],
   });
 
   return { categories };
@@ -32,6 +32,7 @@ export default function AdminCategories() {
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Catálogo</th>
               <th>Orden</th>
               <th>Productos</th>
               <th>Acciones</th>
@@ -42,10 +43,12 @@ export default function AdminCategories() {
               Id: number;
               Name: string;
               SortOrder: number | null;
+              Catalog: { Id: number; Name: string } | null;
               _count: { Products: number };
             }) => (
               <tr key={cat.Id}>
                 <td>{cat.Name}</td>
+                <td>{cat.Catalog?.Name ?? <span className="text-muted">Sin catálogo</span>}</td>
                 <td>{cat.SortOrder ?? "—"}</td>
                 <td>{cat._count.Products}</td>
                 <td>
@@ -66,7 +69,7 @@ export default function AdminCategories() {
             ))}
             {categories.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center text-muted">
+                <td colSpan={5} className="text-center text-muted">
                   No hay categorías.
                 </td>
               </tr>

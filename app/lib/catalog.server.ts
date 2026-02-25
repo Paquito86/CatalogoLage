@@ -15,29 +15,24 @@ export function serializeProduct<T extends Record<string, any>>(product: T): T {
 }
 
 interface CatalogConfig {
-  sortOrderFilter: (number | null)[];
   matrixXField: "MatrixX" | "MatrixXSpirits" | "MatrixXCafe" | "MatrixXAguaCerveza";
   matrixYField: "MatrixY" | "MatrixYSpirits" | "MatrixYCafe" | "MatrixYAguaCerveza";
 }
 
 const configs: Record<CatalogType, CatalogConfig> = {
   wines: {
-    sortOrderFilter: [null, 1],
     matrixXField: "MatrixX",
     matrixYField: "MatrixY",
   },
   spirits: {
-    sortOrderFilter: [2],
     matrixXField: "MatrixXSpirits",
     matrixYField: "MatrixYSpirits",
   },
   cafe: {
-    sortOrderFilter: [3],
     matrixXField: "MatrixXCafe",
     matrixYField: "MatrixYCafe",
   },
   aguacerveza: {
-    sortOrderFilter: [4],
     matrixXField: "MatrixXAguaCerveza",
     matrixYField: "MatrixYAguaCerveza",
   },
@@ -66,11 +61,7 @@ export interface CatalogData {
 }
 
 function buildCategoryWhere(catalogType: CatalogType) {
-  const config = configs[catalogType];
-  if (catalogType === "wines") {
-    return { OR: [{ SortOrder: null }, { SortOrder: 1 }] };
-  }
-  return { SortOrder: config.sortOrderFilter[0] };
+  return { Catalog: { Slug: catalogType } };
 }
 
 export async function loadCatalogData(
