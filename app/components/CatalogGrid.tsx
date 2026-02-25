@@ -28,6 +28,7 @@ function ProductCard({
   isLoggedIn,
   adminMode,
   isPrintMode,
+  showPrices,
   catalogType,
   onContextMenu,
 }: {
@@ -38,6 +39,7 @@ function ProductCard({
   isLoggedIn: boolean;
   adminMode: boolean;
   isPrintMode: boolean;
+  showPrices: boolean;
   catalogType: CatalogType;
   onContextMenu?: (e: React.MouseEvent, product: ProductWithRelations) => void;
 }) {
@@ -122,7 +124,7 @@ function ProductCard({
               )}
             </ul>
           )}
-          {product.Price != null && isLoggedIn && (
+          {product.Price != null && ((!isPrintMode && isLoggedIn) || (isPrintMode && showPrices)) && (
             <div className={`product-price text-primary fw-bold ${adminMode ? "" : "fs-5"}`}>
               {formatPrice(product.Price)}
             </div>
@@ -147,7 +149,10 @@ export default function CatalogGrid({
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
   const [modalOpenCount, setModalOpenCount] = useState(0);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
   const revalidator = useRevalidator();
+
+  const showPrices = searchParams.get("showPrices") === "true";
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -196,12 +201,47 @@ export default function CatalogGrid({
               Modo edición de matriz
             </a>
           )}
-          <a
-            href={`${catalogPath}?Print=true&${new URLSearchParams(Object.fromEntries([["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)))}`}
+          <button
+            type="button"
             className="btn btn-outline-secondary ms-2"
+            onClick={() => setShowPrintDialog(true)}
           >
             Versión para imprimir
-          </a>
+          </button>
+
+          {showPrintDialog && (
+            <div
+              className="modal d-block"
+              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+              onClick={(e) => { if (e.target === e.currentTarget) setShowPrintDialog(false); }}
+            >
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Versión para imprimir</h5>
+                    <button type="button" className="btn-close" onClick={() => setShowPrintDialog(false)} />
+                  </div>
+                  <div className="modal-body">
+                    <p>¿Deseas incluir los precios en la versión para imprimir?</p>
+                  </div>
+                  <div className="modal-footer">
+                    <a
+                      href={`${catalogPath}?Print=true&showPrices=false&${new URLSearchParams(Object.fromEntries([["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)))}`}
+                      className="btn btn-outline-secondary"
+                    >
+                      Sin precios
+                    </a>
+                    <a
+                      href={`${catalogPath}?Print=true&showPrices=true&${new URLSearchParams(Object.fromEntries([["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)))}`}
+                      className="btn btn-primary"
+                    >
+                      Con precios
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -349,6 +389,7 @@ export default function CatalogGrid({
                       isLoggedIn={isLoggedIn}
                       adminMode={adminMode}
                       isPrintMode={isPrintMode}
+                      showPrices={showPrices}
                       catalogType={catalogType}
                       onContextMenu={handleContextMenu}
                     />
