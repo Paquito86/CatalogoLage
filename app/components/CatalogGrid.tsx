@@ -1,5 +1,5 @@
 import { Form, useSearchParams, useFetcher, useRevalidator } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { CatalogData, CatalogType, ProductWithRelations } from "~/lib/catalog.server";
 import ProductEditModal from "./ProductEditModal";
 
@@ -152,6 +152,7 @@ export default function CatalogGrid({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; product: ProductWithRelations } | null>(null);
   const [modalOpenCount, setModalOpenCount] = useState(0);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
   const revalidator = useRevalidator();
 
   const showPrices = searchParams.get("showPrices") === "true";
@@ -168,6 +169,61 @@ export default function CatalogGrid({
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
+
+  // Load collapsed sections from localStorage on mount
+  useEffect(() => {
+    const storageKey = 'matrix-collapse:' + location.pathname;
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (Array.isArray(saved)) {
+        setCollapsedSections(new Set(saved.map((v: unknown) => parseInt(String(v), 10)).filter((v: number) => !Number.isNaN(v))));
+      }
+    } catch {}
+  }, []);
+
+  // Persist collapsed sections to localStorage whenever they change
+  useEffect(() => {
+    const storageKey = 'matrix-collapse:' + location.pathname;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...collapsedSections]));
+    } catch {}
+  }, [collapsedSections]);
+
+  const sortedTitleRows = useMemo(
+    () => [...data.titleRows].sort((a, b) => a.MatrixY - b.MatrixY),
+    [data.titleRows]
+  );
+
+  // Rows that should be hidden because an ancestor section is collapsed
+  const hiddenRows = useMemo(() => {
+    const hidden = new Set<number>();
+    for (const y of collapsedSections) {
+      const tr = sortedTitleRows.find(t => t.MatrixY === y);
+      if (!tr) continue;
+      let yEnd: number;
+      if (tr.Level === 1) {
+        const nextH1 = sortedTitleRows.find(r => r.MatrixY > y && r.Level === 1);
+        yEnd = nextH1 ? nextH1.MatrixY - 1 : data.matrixRows - 1;
+      } else {
+        const idx = sortedTitleRows.findIndex(r => r.MatrixY === y);
+        const next = idx >= 0 && idx + 1 < sortedTitleRows.length ? sortedTitleRows[idx + 1] : null;
+        yEnd = next ? next.MatrixY - 1 : data.matrixRows - 1;
+      }
+      for (let row = y + 1; row <= yEnd; row++) {
+        hidden.add(row);
+      }
+    }
+    return hidden;
+  }, [collapsedSections, sortedTitleRows, data.matrixRows]);
+
+  const handleToggleSection = (y: number) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(y)) next.delete(y);
+      else next.add(y);
+      return next;
+    });
+  };
 
   const handleContextMenu = (e: React.MouseEvent, product: ProductWithRelations) => {
     if (isAdmin && !adminMode) {
@@ -212,102 +268,30 @@ export default function CatalogGrid({
           </button>
 
           {showPrintDialog && (
-            <div
-              className="modal d-block"
-              style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-              onClick={(e) => { if (e.target === e.currentTarget) setShowPrintDialog(false); }}
-            >
-              <div className="modal-dialog modal-dialog-centered">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title">Versión para imprimir</h5>
-                    <button type="button" className="btn-close" onClick={() => setShowPrintDialog(false)} />
-                  </div>
-                  <div className="modal-body">
-                    <p>¿Deseas incluir los precios en la versión para imprimir?</p>
-                  </div>
-                  <div className="modal-footer">
-                    <a
-                      href={`${catalogPath}?Print=true&showPrices=false&${new URLSearchParams(Object.fromEntries([["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)))}`}
-                      className="btn btn-outline-secondary"
-                    >
-                      Sin precios
-                    </a>
-                    <a
-                      href={`${catalogPath}?Print=true&showPrices=true&${new URLSearchParams(Object.fromEntries([["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)))}`}
-                      className="btn btn-primary"
-                    >
-                      Con precios
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PrintDialog
+              onClose={() => setShowPrintDialog(false)}
+              catalogPath={catalogPath}
+              query={query}
+              categoryId={categoryId}
+              winery={winery}
+              origin={origin}
+              grapeTypeId={grapeTypeId}
+            />
           )}
         </div>
       )}
 
       {!isPrintMode && (
-        <Form method="get" className="mb-3">
-          <div className="row g-2 align-items-end">
-            <div className="col-md-6">
-              <label htmlFor="q" className="form-label">Buscar</label>
-              <input
-                id="q"
-                name="Query"
-                defaultValue={query}
-                className="form-control"
-                placeholder="Nombre, descripción, fabricante o bodega"
-              />
-            </div>
-            <div className="col-md-3">
-              <label htmlFor="categoryId" className="form-label">Categoría</label>
-              <select id="categoryId" name="categoryId" className="form-select" defaultValue={categoryId}>
-                <option value="">-- Todas --</option>
-                {data.categories.map((c) => (
-                  <option key={c.Id} value={c.Id}>{c.Name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3 d-grid">
-              <button className="btn btn-primary" type="submit">Filtrar</button>
-            </div>
-          </div>
-          <div className="row g-2 mt-2">
-            <div className="col-md-4">
-              <label htmlFor="Winery" className="form-label">
-                {catalogType === "wines" ? "Bodega" : "Fabricante"}
-              </label>
-              <select id="Winery" name="Winery" className="form-select" defaultValue={winery}>
-                <option value="">-- Todas --</option>
-                {data.wineries.map((w) => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-4">
-              <label htmlFor="Origin" className="form-label">
-                {catalogType === "wines" ? "Denominación de Origen" : "Origen"}
-              </label>
-              <select id="Origin" name="Origin" className="form-select" defaultValue={origin}>
-                <option value="">-- Todas --</option>
-                {data.origins.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-4">
-              <label htmlFor="GrapeTypeId" className="form-label">Tipo de uva</label>
-              <select id="GrapeTypeId" name="GrapeTypeId" className="form-select" defaultValue={grapeTypeId}>
-                <option value="">-- Todas --</option>
-                {data.grapeTypes.map((g) => (
-                  <option key={g.Id} value={g.Id}>{g.Name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {adminMode && <input type="hidden" name="AdminMode" value="true" />}
-        </Form>
+        <CatalogFilterForm
+          query={query}
+          categoryId={categoryId}
+          winery={winery}
+          origin={origin}
+          grapeTypeId={grapeTypeId}
+          data={data}
+          adminMode={adminMode}
+          catalogType={catalogType}
+        />
       )}
 
       <div className={`matrix-container ${isPrintMode ? "no-center" : ""} mb-4`}>
@@ -322,7 +306,7 @@ export default function CatalogGrid({
               return [
                 <div
                   key={`title-${y}`}
-                  className={`matrix-title-row section-row ${showTitle ? "" : "no-products"}`}
+                  className={`matrix-title-row section-row ${showTitle ? "" : "no-products"} ${collapsedSections.has(y) ? "section-collapsed" : ""} ${hiddenRows.has(y) ? "hidden-by-section" : ""}`}
                   data-y={y}
                   data-level={titleRow.Level}
                   style={{ gridColumn: `1 / span ${data.matrixColumns}`, position: "relative" }}
@@ -334,8 +318,10 @@ export default function CatalogGrid({
                           type="button"
                           className="btn btn-sm btn-outline-secondary toggle-section"
                           title="Colapsar/expandir sección"
+                          aria-expanded={!collapsedSections.has(titleRow.MatrixY)}
+                          onClick={() => handleToggleSection(titleRow.MatrixY)}
                         >
-                          <i className="bi bi-chevron-up" />
+                          <i className={collapsedSections.has(titleRow.MatrixY) ? "bi bi-chevron-down" : "bi bi-chevron-up"} />
                         </button>
                       )}
                       {titleRow.Level === 1 ? (
@@ -374,7 +360,7 @@ export default function CatalogGrid({
                   key={`cell-${x}-${y}`}
                   className={`matrix-cell ${adminMode ? "editable" : ""} ${
                     isEmptyReserved && adminMode ? "reserved-empty" : ""
-                  } ${data.isFiltered && isEmptyCell ? "empty" : ""}`}
+                  } ${data.isFiltered && isEmptyCell ? "empty" : ""} ${hiddenRows.has(y) ? "hidden-by-section" : ""}`}
                   data-x={x}
                   data-y={y}
                   style={{ position: "relative" }}
@@ -441,31 +427,14 @@ export default function CatalogGrid({
       )}
 
       {isAdmin && !isPrintMode && contextMenu && (
-        <div
-          className="context-menu-wrapper"
-          style={{
-             position: "fixed",
-             top: contextMenu.y,
-             left: contextMenu.x,
-             zIndex: 9999,
+        <ProductContextMenu
+          contextMenu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onEdit={(product) => {
+            setEditingProduct(product);
+            setModalOpenCount(prev => prev + 1);
           }}
-        >
-          <div className="dropdown-menu show">
-            <button
-              className="dropdown-item"
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingProduct(contextMenu.product);
-                setModalOpenCount(prev => prev + 1);
-                setContextMenu(null);
-              }}
-            >
-              <i className="bi bi-pencil-square me-2"></i>
-              Editar producto
-            </button>
-          </div>
-        </div>
+        />
       )}
 
       {isAdmin && !adminMode && (
@@ -479,13 +448,183 @@ export default function CatalogGrid({
         />
       )}
 
-      {/* Section collapse – always active outside print mode */}
-      {!isPrintMode && (
-        <SectionCollapseScript
-          matrixRows={data.matrixRows}
-        />
-      )}
+
     </>
+  );
+}
+
+function PrintDialog({
+  onClose,
+  catalogPath,
+  query,
+  categoryId,
+  winery,
+  origin,
+  grapeTypeId,
+}: {
+  onClose: () => void;
+  catalogPath: string;
+  query: string;
+  categoryId: string;
+  winery: string;
+  origin: string;
+  grapeTypeId: string;
+}) {
+  const filterParams = new URLSearchParams(
+    Object.fromEntries(
+      [["Query", query], ["categoryId", categoryId], ["Winery", winery], ["Origin", origin], ["GrapeTypeId", grapeTypeId]].filter(([, v]) => v)
+    )
+  );
+  return (
+    <div
+      className="modal d-block"
+      role="dialog"
+      aria-modal={true}
+      aria-labelledby="print-dialog-title"
+      tabIndex={-1}
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+    >
+      <div className="modal-dialog modal-dialog-centered">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title" id="print-dialog-title">Versión para imprimir</h5>
+            <button type="button" className="btn-close" onClick={onClose} />
+          </div>
+          <div className="modal-body">
+            <p>¿Deseas incluir los precios en la versión para imprimir?</p>
+          </div>
+          <div className="modal-footer">
+            <a href={`${catalogPath}?Print=true&showPrices=false&${filterParams}`} className="btn btn-outline-secondary">
+              Sin precios
+            </a>
+            <a href={`${catalogPath}?Print=true&showPrices=true&${filterParams}`} className="btn btn-primary">
+              Con precios
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CatalogFilterForm({
+  query,
+  categoryId,
+  winery,
+  origin,
+  grapeTypeId,
+  data,
+  adminMode,
+  catalogType,
+}: {
+  query: string;
+  categoryId: string;
+  winery: string;
+  origin: string;
+  grapeTypeId: string;
+  data: CatalogData;
+  adminMode: boolean;
+  catalogType: CatalogType;
+}) {
+  return (
+    <Form method="get" className="mb-3">
+      <div className="row g-2 align-items-end">
+        <div className="col-md-6">
+          <label htmlFor="q" className="form-label">Buscar</label>
+          <input
+            id="q"
+            name="Query"
+            defaultValue={query}
+            className="form-control"
+            placeholder="Nombre, descripción, fabricante o bodega"
+          />
+        </div>
+        <div className="col-md-3">
+          <label htmlFor="categoryId" className="form-label">Categoría</label>
+          <select id="categoryId" name="categoryId" className="form-select" defaultValue={categoryId}>
+            <option value="">-- Todas --</option>
+            {data.categories.map((c) => (
+              <option key={c.Id} value={c.Id}>{c.Name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-3 d-grid">
+          <button className="btn btn-primary" type="submit">Filtrar</button>
+        </div>
+      </div>
+      <div className="row g-2 mt-2">
+        <div className="col-md-4">
+          <label htmlFor="Winery" className="form-label">
+            {catalogType === "wines" ? "Bodega" : "Fabricante"}
+          </label>
+          <select id="Winery" name="Winery" className="form-select" defaultValue={winery}>
+            <option value="">-- Todas --</option>
+            {data.wineries.map((w) => (
+              <option key={w} value={w}>{w}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-4">
+          <label htmlFor="Origin" className="form-label">
+            {catalogType === "wines" ? "Denominación de Origen" : "Origen"}
+          </label>
+          <select id="Origin" name="Origin" className="form-select" defaultValue={origin}>
+            <option value="">-- Todas --</option>
+            {data.origins.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-4">
+          <label htmlFor="GrapeTypeId" className="form-label">Tipo de uva</label>
+          <select id="GrapeTypeId" name="GrapeTypeId" className="form-select" defaultValue={grapeTypeId}>
+            <option value="">-- Todas --</option>
+            {data.grapeTypes.map((g) => (
+              <option key={g.Id} value={g.Id}>{g.Name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {adminMode && <input type="hidden" name="AdminMode" value="true" />}
+    </Form>
+  );
+}
+
+function ProductContextMenu({
+  contextMenu,
+  onClose,
+  onEdit,
+}: {
+  contextMenu: { x: number; y: number; product: ProductWithRelations };
+  onClose: () => void;
+  onEdit: (product: ProductWithRelations) => void;
+}) {
+  return (
+    <div
+      className="context-menu-wrapper"
+      role="menu"
+      aria-label="Acciones del producto"
+      style={{ position: "fixed", top: contextMenu.y, left: contextMenu.x, zIndex: 9999 }}
+      onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+    >
+      <div className="dropdown-menu show">
+        <button
+          className="dropdown-item"
+          type="button"
+          role="menuitem"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(contextMenu.product);
+            onClose();
+          }}
+        >
+          <i className="bi bi-pencil-square me-2"></i>
+          Editar producto
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -711,9 +850,16 @@ function UnpositionedProducts({
 function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType; csrfToken: string | null }) {
   const fetcher = useFetcher();
   const formRef = useRef<HTMLFormElement>(null);
+  const processedData = useRef<unknown>(undefined);
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data &&
+      (fetcher.data as any).success &&
+      fetcher.data !== processedData.current
+    ) {
+      processedData.current = fetcher.data;
       formRef.current?.reset();
     }
   }, [fetcher.state, fetcher.data]);
@@ -755,99 +901,6 @@ function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType;
   );
 }
 
-function SectionCollapseScript({ matrixRows }: { matrixRows: number }) {
-  useEffect(() => {
-    const sectionRows = [...document.querySelectorAll<HTMLElement>('.matrix-title-row.section-row')].sort((a, b) => {
-      return parseInt(a.dataset.y || '0') - parseInt(b.dataset.y || '0');
-    });
-    const allMatrixCells = [...document.querySelectorAll<HTMLElement>('.matrix-cell')];
-    const storageKey = 'matrix-collapse:' + location.pathname;
-    let collapsedSet = new Set<number>();
-
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      if (Array.isArray(saved)) {
-        collapsedSet = new Set(saved.map(v => parseInt(v, 10)).filter(v => !Number.isNaN(v)));
-      }
-    } catch {}
-
-    function getSectionRange(row: HTMLElement) {
-      const yStart = parseInt(row.dataset.y || '0');
-      const level = parseInt(row.dataset.level || '2');
-      if (level === 1) {
-        const nextH1 = sectionRows.find(r => parseInt(r.dataset.y || '0') > yStart && parseInt(r.dataset.level || '2') === 1);
-        return { yStart, yEnd: nextH1 ? parseInt(nextH1.dataset.y || '0') - 1 : matrixRows - 1 };
-      }
-      const idx = sectionRows.indexOf(row);
-      const next = idx >= 0 && idx + 1 < sectionRows.length ? sectionRows[idx + 1] : null;
-      return { yStart, yEnd: next ? parseInt(next.dataset.y || '0') - 1 : matrixRows - 1 };
-    }
-
-    function setSectionCollapsed(row: HTMLElement, collapsed: boolean) {
-      const icon = row.querySelector('.toggle-section i');
-      if (icon) {
-        icon.classList.toggle('bi-chevron-up', !collapsed);
-        icon.classList.toggle('bi-chevron-down', collapsed);
-      }
-      const { yStart, yEnd } = getSectionRange(row);
-      allMatrixCells.forEach(c => {
-        const y = parseInt(c.dataset.y || '0');
-        if (!Number.isNaN(y) && y > yStart && y <= yEnd) {
-          c.classList.toggle('hidden-by-section', collapsed);
-        }
-      });
-      if (parseInt(row.dataset.level || '2') === 1) {
-        sectionRows.forEach(sr => {
-          const y = parseInt(sr.dataset.y || '0');
-          if (y > yStart && y <= yEnd) {
-            const srIcon = sr.querySelector('.toggle-section i');
-            if (srIcon) {
-              srIcon.classList.toggle('bi-chevron-down', collapsed);
-              srIcon.classList.toggle('bi-chevron-up', !collapsed);
-            }
-            sr.classList.toggle('section-collapsed', collapsed);
-          }
-        });
-      }
-    }
-
-    sectionRows.forEach(row => {
-      const y = parseInt(row.dataset.y || '0');
-      if (collapsedSet.has(y)) {
-        row.classList.add('section-collapsed');
-        setSectionCollapsed(row, true);
-      }
-    });
-
-    const toggleButtons = [...document.querySelectorAll<HTMLElement>('.toggle-section')];
-    const handlers = new Map<HTMLElement, () => void>();
-    toggleButtons.forEach(btn => {
-      const handler = function() {
-        const row = btn.closest<HTMLElement>('.section-row');
-        if (!row) return;
-        const collapsed = row.classList.toggle('section-collapsed');
-        setSectionCollapsed(row, collapsed);
-        const y = parseInt(row.dataset.y || '0');
-        if (!Number.isNaN(y)) {
-          if (collapsed) collapsedSet.add(y);
-          else collapsedSet.delete(y);
-          try {
-            localStorage.setItem(storageKey, JSON.stringify([...collapsedSet]));
-          } catch {}
-        }
-      };
-      handlers.set(btn, handler);
-      btn.addEventListener('click', handler);
-    });
-
-    return () => {
-      handlers.forEach((handler, btn) => btn.removeEventListener('click', handler));
-    };
-  }, [matrixRows]);
-
-  return null;
-}
-
 function CatalogDragDropScript({
   catalogType,
   matrixRows,
@@ -868,7 +921,7 @@ function CatalogDragDropScript({
   onMutationSuccess: () => void;
 }) {
   const onMutationSuccessRef = useRef(onMutationSuccess);
-  useEffect(() => { onMutationSuccessRef.current = onMutationSuccess; });
+  onMutationSuccessRef.current = onMutationSuccess;
 
   const updatePositionFetcher = useFetcher();
   const vaciarCeldaFetcher = useFetcher();
@@ -877,24 +930,43 @@ function CatalogDragDropScript({
   const updatePositionSubmitRef = useRef(updatePositionFetcher.submit);
   const vaciarCeldaSubmitRef = useRef(vaciarCeldaFetcher.submit);
   const placeUnassignedSubmitRef = useRef(placeUnassignedFetcher.submit);
-  useEffect(() => { updatePositionSubmitRef.current = updatePositionFetcher.submit; });
-  useEffect(() => { vaciarCeldaSubmitRef.current = vaciarCeldaFetcher.submit; });
-  useEffect(() => { placeUnassignedSubmitRef.current = placeUnassignedFetcher.submit; });
+  updatePositionSubmitRef.current = updatePositionFetcher.submit;
+  vaciarCeldaSubmitRef.current = vaciarCeldaFetcher.submit;
+  placeUnassignedSubmitRef.current = placeUnassignedFetcher.submit;
+
+  const updatePositionLastData = useRef<unknown>(undefined);
+  const vaciarCeldaLastData = useRef<unknown>(undefined);
+  const placeUnassignedLastData = useRef<unknown>(undefined);
 
   useEffect(() => {
-    if (updatePositionFetcher.state === 'idle' && updatePositionFetcher.data != null) {
+    if (
+      updatePositionFetcher.state === 'idle' &&
+      updatePositionFetcher.data != null &&
+      updatePositionFetcher.data !== updatePositionLastData.current
+    ) {
+      updatePositionLastData.current = updatePositionFetcher.data;
       onMutationSuccessRef.current();
     }
   }, [updatePositionFetcher.state, updatePositionFetcher.data]);
 
   useEffect(() => {
-    if (vaciarCeldaFetcher.state === 'idle' && vaciarCeldaFetcher.data != null) {
+    if (
+      vaciarCeldaFetcher.state === 'idle' &&
+      vaciarCeldaFetcher.data != null &&
+      vaciarCeldaFetcher.data !== vaciarCeldaLastData.current
+    ) {
+      vaciarCeldaLastData.current = vaciarCeldaFetcher.data;
       onMutationSuccessRef.current();
     }
   }, [vaciarCeldaFetcher.state, vaciarCeldaFetcher.data]);
 
   useEffect(() => {
-    if (placeUnassignedFetcher.state === 'idle' && placeUnassignedFetcher.data != null) {
+    if (
+      placeUnassignedFetcher.state === 'idle' &&
+      placeUnassignedFetcher.data != null &&
+      placeUnassignedFetcher.data !== placeUnassignedLastData.current
+    ) {
+      placeUnassignedLastData.current = placeUnassignedFetcher.data;
       onMutationSuccessRef.current();
     }
   }, [placeUnassignedFetcher.state, placeUnassignedFetcher.data]);

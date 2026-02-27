@@ -50,6 +50,9 @@ export default function AgeVerification({ children }: { children: React.ReactNod
       {!isVerified && (
         <div 
           className="modal fade show" 
+          role="dialog"
+          aria-modal={true}
+          aria-labelledby="age-dialog-title"
           style={{ 
             display: "block", 
             backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -66,7 +69,7 @@ export default function AgeVerification({ children }: { children: React.ReactNod
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content border-0 shadow-lg">
               <div className="modal-header border-0 pb-0">
-                <h5 className="modal-title w-100 text-center fw-bold fs-4">Verificación de Edad</h5>
+                <h5 id="age-dialog-title" className="modal-title w-100 text-center fw-bold fs-4">Verificación de Edad</h5>
               </div>
               <div className="modal-body text-center py-4">
                 <div className="mb-4">
