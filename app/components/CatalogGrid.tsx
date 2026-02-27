@@ -561,8 +561,9 @@ function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; ca
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
-          <label className="form-label mb-0 small">Insertar fila en posición</label>
+          <label htmlFor="insert-row-y" className="form-label mb-0 small">Insertar fila en posición</label>
           <input
+            id="insert-row-y"
             name="y"
             type="number"
             min="0"
@@ -584,8 +585,9 @@ function AdminControls({ data, catalogType, csrfToken }: { data: CatalogData; ca
       >
         <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
         <div className="d-flex flex-column">
-          <label className="form-label mb-0 small">Borrar últimas filas vacías</label>
+          <label htmlFor="delete-rows-count" className="form-label mb-0 small">Borrar últimas filas vacías</label>
           <input
+            id="delete-rows-count"
             name="count"
             type="number"
             min="1"
@@ -685,16 +687,16 @@ function CreateTitleForm({ catalogType, csrfToken }: { catalogType: CatalogType;
         >
           <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
           <div className="col-md-4">
-            <label className="form-label">Texto</label>
-            <input name="text" className="form-control form-control-sm" required />
+            <label htmlFor="title-text" className="form-label">Texto</label>
+            <input id="title-text" name="text" className="form-control form-control-sm" required />
           </div>
           <div className="col-md-2">
-            <label className="form-label">Fila (Y)</label>
-            <input name="y" type="number" min="0" className="form-control form-control-sm" defaultValue="0" />
+            <label htmlFor="title-y" className="form-label">Fila (Y)</label>
+            <input id="title-y" name="y" type="number" min="0" className="form-control form-control-sm" defaultValue="0" />
           </div>
           <div className="col-md-2">
-            <label className="form-label">Nivel</label>
-            <select name="level" className="form-select form-select-sm" defaultValue="2">
+            <label htmlFor="title-level" className="form-label">Nivel</label>
+            <select id="title-level" name="level" className="form-select form-select-sm" defaultValue="2">
               <option value="1">h1</option>
               <option value="2">h2</option>
             </select>
@@ -824,6 +826,35 @@ function CatalogDragDropScript({
 }) {
   const onMutationSuccessRef = useRef(onMutationSuccess);
   useEffect(() => { onMutationSuccessRef.current = onMutationSuccess; });
+
+  const updatePositionFetcher = useFetcher();
+  const vaciarCeldaFetcher = useFetcher();
+  const placeUnassignedFetcher = useFetcher();
+
+  const updatePositionSubmitRef = useRef(updatePositionFetcher.submit);
+  const vaciarCeldaSubmitRef = useRef(vaciarCeldaFetcher.submit);
+  const placeUnassignedSubmitRef = useRef(placeUnassignedFetcher.submit);
+  useEffect(() => { updatePositionSubmitRef.current = updatePositionFetcher.submit; });
+  useEffect(() => { vaciarCeldaSubmitRef.current = vaciarCeldaFetcher.submit; });
+  useEffect(() => { placeUnassignedSubmitRef.current = placeUnassignedFetcher.submit; });
+
+  useEffect(() => {
+    if (updatePositionFetcher.state === 'idle' && updatePositionFetcher.data != null) {
+      onMutationSuccessRef.current();
+    }
+  }, [updatePositionFetcher.state, updatePositionFetcher.data]);
+
+  useEffect(() => {
+    if (vaciarCeldaFetcher.state === 'idle' && vaciarCeldaFetcher.data != null) {
+      onMutationSuccessRef.current();
+    }
+  }, [vaciarCeldaFetcher.state, vaciarCeldaFetcher.data]);
+
+  useEffect(() => {
+    if (placeUnassignedFetcher.state === 'idle' && placeUnassignedFetcher.data != null) {
+      onMutationSuccessRef.current();
+    }
+  }, [placeUnassignedFetcher.state, placeUnassignedFetcher.data]);
 
   useEffect(() => {
     const isDev = process.env.NODE_ENV !== 'production';
@@ -966,64 +997,31 @@ function CatalogDragDropScript({
     
     document.addEventListener('contextmenu', contextMenuHandler);
 
-    async function updateProductPosition(productId: string, x: number, y: number) {
-      try {
-        const fd = new FormData();
-        fd.append('_csrf', csrfToken || '');
-        fd.append('productId', productId);
-        fd.append('x', x.toString());
-        fd.append('y', y.toString());
-        const resp = await fetch('/api/catalog/' + catalogType + '/update-position', {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-CSRF-Token': csrfToken || '' }
-        });
-        if (resp.ok) onMutationSuccessRef.current();
-        else alert('Error: ' + await resp.text());
-      } catch (err) {
-        console.error(err);
-        alert('Error al actualizar posición');
-      }
+    function updateProductPosition(productId: string, x: number, y: number) {
+      const fd = new FormData();
+      fd.append('_csrf', csrfToken || '');
+      fd.append('productId', productId);
+      fd.append('x', x.toString());
+      fd.append('y', y.toString());
+      updatePositionSubmitRef.current(fd, { method: 'post', action: '/api/catalog/' + catalogType + '/update-position' });
     }
 
-    async function vaciarCelda(productId: string, x: string, y: string) {
-      try {
-        const fd = new FormData();
-        fd.append('_csrf', csrfToken || '');
-        fd.append('productId', productId);
-        fd.append('x', x);
-        fd.append('y', y);
-        const resp = await fetch('/api/catalog/' + catalogType + '/vaciar-celda', {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-CSRF-Token': csrfToken || '' }
-        });
-        if (resp.ok) onMutationSuccessRef.current();
-        else alert('Error: ' + await resp.text());
-      } catch (err) {
-        console.error(err);
-        alert('Error al reservar celda');
-      }
+    function vaciarCelda(productId: string, x: string, y: string) {
+      const fd = new FormData();
+      fd.append('_csrf', csrfToken || '');
+      fd.append('productId', productId);
+      fd.append('x', x);
+      fd.append('y', y);
+      vaciarCeldaSubmitRef.current(fd, { method: 'post', action: '/api/catalog/' + catalogType + '/vaciar-celda' });
     }
 
-    async function placeUnassigned(productId: string, x: number, y: number) {
-      try {
-        const fd = new FormData();
-        fd.append('_csrf', csrfToken || '');
-        fd.append('productId', productId);
-        fd.append('x', x.toString());
-        fd.append('y', y.toString());
-        const resp = await fetch('/api/catalog/' + catalogType + '/place-unassigned', {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-CSRF-Token': csrfToken || '' }
-        });
-        if (resp.ok) onMutationSuccessRef.current();
-        else alert('Error: ' + await resp.text());
-      } catch (err) {
-        console.error(err);
-        alert('Error al asignar posición');
-      }
+    function placeUnassigned(productId: string, x: number, y: number) {
+      const fd = new FormData();
+      fd.append('_csrf', csrfToken || '');
+      fd.append('productId', productId);
+      fd.append('x', x.toString());
+      fd.append('y', y.toString());
+      placeUnassignedSubmitRef.current(fd, { method: 'post', action: '/api/catalog/' + catalogType + '/place-unassigned' });
     }
 
     // Cleanup function

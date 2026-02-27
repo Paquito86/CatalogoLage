@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import type { ProductWithRelations } from "~/lib/catalog.server";
 
@@ -22,25 +22,21 @@ export default function ProductEditModal({
 }: ProductEditModalProps) {
   const fetcher = useFetcher();
   const isSubmitting = fetcher.state !== "idle";
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const hasSubmitted = useRef(false);
 
   useEffect(() => {
     if (product) {
-      setIsOpen(true);
-      setHasSubmitted(false);
-    } else {
-      setIsOpen(false);
+      hasSubmitted.current = false;
     }
   }, [product]);
 
   useEffect(() => {
-    if (hasSubmitted && fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
+    if (hasSubmitted.current && fetcher.state === "idle" && fetcher.data && (fetcher.data as any).success) {
       onClose();
     }
-  }, [hasSubmitted, fetcher.state, fetcher.data, onClose]);
+  }, [fetcher.state, fetcher.data, onClose]);
 
-  if (!product || !isOpen) return null;
+  if (!product) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -50,19 +46,28 @@ export default function ProductEditModal({
 
   return (
     <>
-      <div 
-        className="modal fade show" 
-        style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }} 
+      <div
+        className="modal fade show"
+        style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}
         tabIndex={-1}
+        role="dialog"
+        aria-modal={true}
+        aria-labelledby="editModalTitle"
         onClick={handleBackdropClick}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
       >
-        <div className="modal-dialog modal-lg" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-dialog modal-lg"
+          role="document"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Editar Producto: {product.Name}</h5>
+              <h5 className="modal-title" id="editModalTitle">Editar Producto: {product.Name}</h5>
               <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
             </div>
-            <fetcher.Form method="post" action="/api/products/save" onSubmit={() => setHasSubmitted(true)}>
+            <fetcher.Form method="post" action="/api/products/save" onSubmit={() => { hasSubmitted.current = true; }}>
               <div className="modal-body">
                 <input type="hidden" name="_csrf" value={csrfToken ?? ""} />
                 <input type="hidden" name="Id" value={product.Id} />

@@ -114,15 +114,14 @@ function Navbar() {
             </li>
             {isAdminUser && (
               <li className="nav-item dropdown">
-                <a
+                <button
+                  type="button"
                   className="nav-link dropdown-toggle"
-                  href="#"
-                  role="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
                   Administración
-                </a>
+                </button>
                 <ul className="dropdown-menu">
                   <li><NavLink className="dropdown-item" to="/admin/products">Productos</NavLink></li>
                   <li><NavLink className="dropdown-item" to="/admin/categories">Categorías</NavLink></li>

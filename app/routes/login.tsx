@@ -45,7 +45,6 @@ export default function Login() {
               name="email"
               className="form-control"
               required
-              autoFocus
             />
           </div>
           <div className="mb-3">

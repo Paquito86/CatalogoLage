@@ -6,12 +6,14 @@ import type { Route } from "./+types/products.create";
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
-  const categories = await prisma.category.findMany({
-    orderBy: [{ SortOrder: "asc" }, { Name: "asc" }],
-  });
-  const grapeTypes = await prisma.grapeType.findMany({
-    orderBy: { Name: "asc" },
-  });
+  const [categories, grapeTypes] = await Promise.all([
+    prisma.category.findMany({
+      orderBy: [{ SortOrder: "asc" }, { Name: "asc" }],
+    }),
+    prisma.grapeType.findMany({
+      orderBy: { Name: "asc" },
+    }),
+  ]);
 
   return { categories, grapeTypes };
 }
