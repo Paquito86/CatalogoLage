@@ -53,7 +53,7 @@ export default function Home() {
           <Link to="/cafe" className="text-decoration-none">
             <div className="card catalog-card h-75 shadow-sm border-0 text-white">
               <img 
-                src="https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/landing-cafe.jpg" 
+                src="https://eu2.contabostorage.com/e4ecd8e8ee8c4b2f81cfae38d5e07fa4:lage/segafredo2.jpeg" 
                 className="card-img h-100" 
                 alt="Café e Infusiones" 
                 style={{ objectFit: "cover", minHeight: "300px" }}

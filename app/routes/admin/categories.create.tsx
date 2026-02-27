@@ -1,11 +1,12 @@
-import { Form, Link, redirect, useActionData } from "react-router";
+import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/auth.server";
 import type { Route } from "./+types/categories.create";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  return {};
+  const catalogs = await prisma.catalog.findMany({ orderBy: { Name: "asc" } });
+  return { catalogs };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -18,12 +19,17 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "El nombre es obligatorio." };
   }
 
+  const catalogIdStr = String(formData.get("CatalogId") || "");
+  if (!catalogIdStr) {
+    return { error: "Debes seleccionar un catálogo." };
+  }
   const sortOrderStr = String(formData.get("SortOrder") || "");
 
   await prisma.category.create({
     data: {
       Name: name,
       Description: String(formData.get("Description") || "") || null,
+      CatalogId: parseInt(catalogIdStr, 10),
       SortOrder: sortOrderStr ? parseInt(sortOrderStr, 10) : null,
     },
   });
@@ -32,6 +38,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function CategoryCreate() {
+  const { catalogs } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -56,13 +63,19 @@ export default function CategoryCreate() {
             </div>
 
             <div className="mb-3">
-              <label htmlFor="SortOrder" className="form-label">Orden</label>
-              <select id="SortOrder" name="SortOrder" className="form-select">
-                <option value="">Sin orden</option>
-                <option value="1">1 — Vinos</option>
-                <option value="2">2 — Destilados</option>
-                <option value="3">3 — Café</option>
+              <label htmlFor="CatalogId" className="form-label">Catálogo *</label>
+              <select id="CatalogId" name="CatalogId" className="form-select" required>
+                <option value="">-- Selecciona un catálogo --</option>
+                {catalogs.map((c) => (
+                  <option key={c.Id} value={c.Id}>{c.Name}</option>
+                ))}
               </select>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="SortOrder" className="form-label">Orden de visualización</label>
+              <input type="number" id="SortOrder" name="SortOrder" className="form-control" placeholder="(opcional)" />
+              <div className="form-text">Número para ordenar la categoría dentro de su catálogo.</div>
             </div>
           </div>
         </div>
